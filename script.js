@@ -84,7 +84,7 @@ for(let x = 0; x <= canvas.width; x++) {
             reflection *= obj.refl;
 
             origin = transpoint;
-            dir = cb.vec3.sub(dir, cb.vec3.scl(surfacenormal, 2 * cb.vec3.dot(dir, surfacenormal)));
+            dir = cb.vec3.reflect(dir, surfacenormal);
         }
         clr = [Math.max(Math.min(clr[0], 255), 0), Math.max(Math.min(clr[1], 255), 0), Math.max(Math.min(clr[2], 255), 0)];
         let pixels = imageData.data, px = (x + y * canvas.width) * 4;
