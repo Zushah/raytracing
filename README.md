@@ -1,4 +1,4 @@
 # raytracing
 Work in progress.
 
-Powered by [Chalkboard v2.0.0 al-Khwarizmi](https://github.com/Zushah/Chalkboard).
+Powered by [Chalkboard v2.1.0 Seki](https://github.com/Zushah/Chalkboard).
