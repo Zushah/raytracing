@@ -74,7 +74,7 @@ for (let x = 0; x <= canvas.width; x++) {
             let pointlight = cb.vect.normalize(cb.vect.sub(light.pos, transpoint));
             illumination = cb.vect.add(illumination, cb.vect.fill(obj.ambi * light.ambi, 3));
             let shadowed = closestobj(objs, transpoint, pointlight);
-            if (!(shadowed && shadowed.distance * reflection < cb.vect.mag(pointlight))) {
+            if (!(shadowed && shadowed.distance < cb.vect.mag(cb.vect.sub(light.pos, transpoint)))) {
                 let diffuse = cb.numb.constrain(cb.vect.dot(pointlight, surfacenormal), [0, 1]);
                 illumination = cb.vect.add(illumination, cb.vect.fill(obj.diff * light.diff * diffuse, 3));
                 let specular = cb.numb.constrain(
