@@ -1,6 +1,5 @@
 const cb = Chalkboard;
 const ctx = document.getElementById("canvas").getContext("2d");
-const camera = cb.vect.init(0, 0, 1);
 const light = { pos: cb.vect.init(10, -10, 5), ambi: 0.1, diff: 1.0, spec: 1.0 };
 const sphere = (pos, rad, clr, ambi, diff, spec, shin, refl) => {
     return { pos: pos, rad: rad, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl };
@@ -10,14 +9,30 @@ const cube = (pos, size, clr, ambi, diff, spec, shin, refl, rot = 0) => {
     return { pos: pos, size: size, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl, rot: rot, rotm: rotm, irotm: irotm };
 };
 const objs = [
-    cube(cb.vect.init(0, 53, -50), 100, [255, 255, 255], 0.1, 1.0, 0.1, 1, 0.0),
+    cube(cb.vect.init(0, 53, 0), 100, [255, 255, 255], 0.1, 1.0, 0.1, 1, 0.0),
     sphere(cb.vect.init(-1, -2.00, -3), 1.0, [255, 0, 0], 0.1, 0.5, 0.3, 100, 0.2),
     sphere(cb.vect.init(-1,  0.00, -3), 1.0, [0, 255, 0], 0.1, 0.5, 0.3, 100, 0.2),
     sphere(cb.vect.init(-1,  2.00, -3), 1.0, [0, 0, 255], 0.1, 0.5, 0.3, 100, 0.2),
     cube(cb.vect.init(2, 2.00, -4), 2.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
     cube(cb.vect.init(2, 0.50, -4), 1.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
-    sphere(cb.vect.init(0.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0)
+    sphere(cb.vect.init(0.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
+    sphere(cb.vect.init(3.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
+    sphere(cb.vect.init(3.5, 2.50, -5.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
+    sphere(cb.vect.init(0.5, 2.50, -5.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0)
 ];
+const camera = {
+    pos: cb.vect.init(0, 0, 1),
+    dir: cb.vect.init(0, 0, -1),
+    up: cb.vect.init(0, 1, 0),
+    right: cb.vect.init(1, 0, 0),
+    speed: 0.1, sensitivity: 0.002
+};
+const keys = { w: false, a: false, s: false, d: false };
+let mouse = cb.vect.init(0, 0);
+let isPointerLocked = false;
+let isMoving = false;
+let lastmovetime = 0;
+let renderQuality = 1.0;
 
 const intersection = (obj, origin, dir) => {
     if (obj.rad !== undefined) {
@@ -57,16 +72,102 @@ const closestobj = (objs, origin, dir) => {
     if (distance < Infinity) return { closest: closest, distance: distance };
     return null;
 };
-
-const main = () => {
-    canvas.width = canvas.height = cb.stat.min([window.innerWidth, window.innerHeight]);
+const setupControls = () => {
+    document.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "w") keys.w = true;
+        if (e.key.toLowerCase() === "a") keys.a = true;
+        if (e.key.toLowerCase() === "s") keys.s = true;
+        if (e.key.toLowerCase() === "d") keys.d = true;
+    });
+    document.addEventListener("keyup", (e) => {
+        if (e.key.toLowerCase() === "w") keys.w = false;
+        if (e.key.toLowerCase() === "a") keys.a = false;
+        if (e.key.toLowerCase() === "s") keys.s = false;
+        if (e.key.toLowerCase() === "d") keys.d = false;
+    });
+    canvas.addEventListener("click", () => {
+        canvas.requestPointerLock();
+    });
+    document.addEventListener("pointerlockchange", () => {
+        isPointerLocked = document.pointerLockElement === canvas;
+    });
+    document.addEventListener("mousemove", (e) => {
+        if (isPointerLocked) {
+            mouse.x += e.movementX;
+            mouse.y += e.movementY;
+        }
+    });
+};
+const updateCamera = () => {
+    const now = Date.now();
+    const isCurrentlyMoving = mouse.x !== 0 || mouse.y !== 0 || keys.w || keys.a || keys.s || keys.d;
+    if (isCurrentlyMoving) {
+        isMoving = true;
+        lastmovetime = now;
+        renderQuality = 0.2;
+    } else if (isMoving) {
+        const timestopped = now - lastmovetime;
+        if (timestopped > 250) {
+            isMoving = false;
+            renderQuality = 1.0;
+        } else {
+            renderQuality = cb.numb.map(timestopped, [0, 100], [0.1, 1.0]);
+        }
+    }
+    if (mouse.x !== 0 || mouse.y !== 0) {
+        let yawrad = -mouse.x * camera.sensitivity;
+        let yawrot = cb.matr.rotator(0, yawrad, 0);
+        camera.dir = cb.matr.mulVector(yawrot, camera.dir);
+        camera.right = cb.matr.mulVector(yawrot, camera.right);
+        let pitchrad = mouse.y * camera.sensitivity;
+        let pitchaxis = camera.right;
+        let cos = Math.cos(pitchrad);
+        let sin = Math.sin(pitchrad);
+        let pitchrot = cb.matr.init(
+            [
+                cos + pitchaxis.x * pitchaxis.x * (1 - cos), 
+                pitchaxis.x * pitchaxis.y * (1 - cos) - pitchaxis.z * sin, 
+                pitchaxis.x * pitchaxis.z * (1 - cos) + pitchaxis.y * sin
+            ],
+            [
+                pitchaxis.y * pitchaxis.x * (1 - cos) + pitchaxis.z * sin, 
+                cos + pitchaxis.y * pitchaxis.y * (1 - cos), 
+                pitchaxis.y * pitchaxis.z * (1 - cos) - pitchaxis.x * sin
+            ],
+            [
+                pitchaxis.z * pitchaxis.x * (1 - cos) - pitchaxis.y * sin, 
+                pitchaxis.z * pitchaxis.y * (1 - cos) + pitchaxis.x * sin, 
+                cos + pitchaxis.z * pitchaxis.z * (1 - cos)
+            ]
+        );
+        camera.dir = cb.matr.mulVector(pitchrot, camera.dir);
+        mouse.x = 0;
+        mouse.y = 0;
+    }
+    camera.dir = cb.vect.normalize(camera.dir);
+    camera.right = cb.vect.normalize(cb.vect.cross(camera.dir, cb.vect.init(0, 1, 0)));
+    camera.up = cb.vect.normalize(cb.vect.cross(camera.right, camera.dir));
+    let moveDir = cb.vect.init(0, 0, 0);
+    if (keys.w) moveDir = cb.vect.add(moveDir, camera.dir);
+    if (keys.s) moveDir = cb.vect.add(moveDir, cb.vect.scl(camera.dir, -1));
+    if (keys.a) moveDir = cb.vect.add(moveDir, cb.vect.scl(camera.right, -1));
+    if (keys.d) moveDir = cb.vect.add(moveDir, camera.right);
+    if (cb.vect.magsq(moveDir) > 0) {
+        moveDir = cb.vect.normalize(moveDir);
+        camera.pos = cb.vect.add(camera.pos, cb.vect.scl(moveDir, camera.speed));
+    }
+};
+const render = () => {
+    const size = cb.stat.min([window.innerWidth, window.innerHeight]);
+    canvas.style.width = `${size}px`, canvas.style.height = `${size}px`, canvas.width = canvas.height = Math.floor(size * renderQuality);
     let imageData = ctx.createImageData(canvas.width, canvas.height);
     for (let x = 0; x <= canvas.width; x++) {
         for (let y = 0; y <= canvas.height; y++) {
-            let origin = camera, clr = [0, 0, 0], illumination = cb.vect.init(0, 0, 0);
-            let dir = cb.vect.normalize(cb.vect.sub(cb.vect.init(cb.numb.map(x, [0, canvas.width], [-1, 1]), cb.numb.map(y, [0, canvas.height], [-1, 1]), 0), origin));
+            let origin = camera.pos, clr = [0, 0, 0], illumination = cb.vect.init(0, 0, 0);
+            let dir = cb.vect.normalize(cb.vect.add(camera.dir, cb.vect.add(cb.vect.scl(camera.right, cb.numb.map(x, [0, canvas.width], [-1, 1])), cb.vect.scl(camera.up, cb.numb.map(y, [0, canvas.height], [-1, 1])))));
             let reflection = 1, i = 0;
-            while (reflection > 0.1 && i < 1000) {
+            const maxReflections = isMoving ? 5 : 10;
+            while (reflection > 0.1 && i < maxReflections) {
                 i++;
                 let closest = closestobj(objs, origin, dir);
                 if (!closest) break;
@@ -109,5 +210,16 @@ const main = () => {
         }
     }
     ctx.putImageData(imageData, 0, 0);
+};
+
+const main = () => {
+    alert("Controls:\n" + "- Click on canvas to enable mouse control\n" + "- WASD keys to move around\n" + "- Mouse to look around");
+    setupControls();
+    const drawloop = () => {
+        updateCamera();
+        render();
+        requestAnimationFrame(drawloop);
+    };
+    requestAnimationFrame(drawloop);
 };
 main();
