@@ -1,12 +1,12 @@
 const cb = Chalkboard;
 const ctx = document.getElementById("canvas").getContext("2d");
 const light = { pos: cb.vect.init(10, -10, 5), ambi: 0.1, diff: 1.0, spec: 1.0 };
-const sphere = (pos, rad, clr, ambi, diff, spec, shin, refl) => {
-    return { pos: pos, rad: rad, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl };
+const sphere = (pos, rad, clr, ambi, diff, spec, shin, refl, trans = 0, ior = 1.5) => {
+    return { pos: pos, rad: rad, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl, trans: trans, ior: ior };
 };
-const cube = (pos, size, clr, ambi, diff, spec, shin, refl, rot = 0) => {
+const cube = (pos, size, clr, ambi, diff, spec, shin, refl, rot = 0, trans = 0, ior = 1.5) => {
     let rotm = cb.matr.rotator(0, cb.trig.toRad(rot), 0), irotm = cb.matr.rotator(0, -cb.trig.toRad(rot), 0);
-    return { pos: pos, size: size, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl, rot: rot, rotm: rotm, irotm: irotm };
+    return { pos: pos, size: size, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl, rot: rot, rotm: rotm, irotm: irotm, trans: trans, ior: ior };
 };
 const objs = [
     cube(cb.vect.init(0, 53, 0), 100, [255, 255, 255], 0.1, 1.0, 0.1, 1, 0.0),
@@ -111,7 +111,7 @@ const updateCamera = () => {
             isMoving = false;
             renderQuality = 1.0;
         } else {
-            renderQuality = cb.numb.map(timestopped, [0, 100], [0.1, 1.0]);
+            renderQuality = cb.numb.map(timestopped, [0, 100], [0.2, 1.0]);
         }
     }
     if (mouse.x !== 0 || mouse.y !== 0) {
@@ -121,8 +121,8 @@ const updateCamera = () => {
         camera.right = cb.matr.mulVector(yawrot, camera.right);
         let pitchrad = mouse.y * camera.sensitivity;
         let pitchaxis = camera.right;
-        let cos = Math.cos(pitchrad);
-        let sin = Math.sin(pitchrad);
+        let cos = cb.trig.cos(pitchrad);
+        let sin = cb.trig.sin(pitchrad);
         let pitchrot = cb.matr.init(
             [
                 cos + pitchaxis.x * pitchaxis.x * (1 - cos), 
@@ -166,8 +166,8 @@ const render = () => {
             let origin = camera.pos, clr = [0, 0, 0], illumination = cb.vect.init(0, 0, 0);
             let dir = cb.vect.normalize(cb.vect.add(camera.dir, cb.vect.add(cb.vect.scl(camera.right, cb.numb.map(x, [0, canvas.width], [-1, 1])), cb.vect.scl(camera.up, cb.numb.map(y, [0, canvas.height], [-1, 1])))));
             let reflection = 1, i = 0;
-            const maxReflections = isMoving ? 5 : 10;
-            while (reflection > 0.1 && i < maxReflections) {
+            const maxIterations = isMoving ? 5 : 10;
+            while (reflection > 0.1 && i < maxIterations) {
                 i++;
                 let closest = closestobj(objs, origin, dir);
                 if (!closest) break;
@@ -213,7 +213,7 @@ const render = () => {
 };
 
 const main = () => {
-    alert("Controls:\n" + "- Click on canvas to enable mouse control\n" + "- WASD keys to move around\n" + "- Mouse to look around");
+    alert("Controls:\n" + "- Click on canvas to enable movement\n" + "- WASD keys to move around\n" + "- Mouse to look around");
     setupControls();
     const drawloop = () => {
         updateCamera();
