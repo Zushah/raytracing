@@ -1,5 +1,7 @@
 const cb = Chalkboard;
-const ctx = document.getElementById("canvas").getContext("2d");
+cb.matr.toFloat32Array = matr => new Float32Array(cb.matr.toArray(matr));
+cb.vect.toFloat32Array = vect => new Float32Array(cb.vect.toArray(vect));
+
 const light = { pos: cb.vect.init(10, -10, 5), ambi: 0.1, diff: 1.0, spec: 1.0 };
 const sphere = (pos, rad, clr, ambi, diff, spec, shin, refl, trans = 0, ior = 1.5) => {
     return { pos: pos, rad: rad, clr: clr, ambi: ambi, diff: diff, spec: spec, shin: shin, refl: refl, trans: trans, ior: ior };
@@ -20,6 +22,7 @@ const objs = [
     sphere(cb.vect.init(3.5, 2.50, -5.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
     sphere(cb.vect.init(0.5, 2.50, -5.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0)
 ];
+
 const camera = {
     pos: cb.vect.init(0, 0, 1),
     dir: cb.vect.init(0, 0, -1),
@@ -27,51 +30,104 @@ const camera = {
     right: cb.vect.init(1, 0, 0),
     speed: 0.1, sensitivity: 0.002
 };
+
 const keys = { w: false, a: false, s: false, d: false };
 let mouse = cb.vect.init(0, 0);
 let isPointerLocked = false;
-let isMoving = false;
-let lastmovetime = 0;
-let renderQuality = 1.0;
 
-const intersection = (obj, origin, dir) => {
-    if (obj.rad !== undefined) {
-        let a = 1, b = 2 * cb.vect.dot(dir, cb.vect.sub(origin, obj.pos)), c = cb.vect.magsq(cb.vect.sub(origin, obj.pos)) - (obj.rad * obj.rad);
-        let discriminant = cb.real.discriminant(a, b, c);
-        if (discriminant > 0) {
-            let x = cb.real.quadraticFormula(a, b, c);
-            if (x[0] > 0 && x[1] > 0) return cb.stat.min(x);
-        }
-        return Infinity;
-    } else if (obj.size !== undefined) {
-        let localOrigin = cb.matr.mulVector(obj.irotm, cb.vect.sub(origin, obj.pos)), localDir = cb.matr.mulVector(obj.irotm, dir);
-        let tmax = Infinity, tmin = -Infinity;
-        for (let axis of ["x", "y", "z"]) {
-            if ((localDir[axis] * cb.numb.sgn(localDir[axis])) < 1e-6) {
-                if (localOrigin[axis] < -(obj.size / 2) || localOrigin[axis] > (obj.size / 2)) return Infinity;
-            } else {
-                let t1 = (-(obj.size / 2) - localOrigin[axis]) / localDir[axis], t2 = ((obj.size / 2) - localOrigin[axis]) / localDir[axis];
-                if (t1 > t2) { let temp = t1; t1 = t2; t2 = temp; }
-                tmin = cb.stat.max([tmin, t1]), tmax = cb.stat.min([tmax, t2]);
-                if (tmin > tmax) return Infinity;
-            }
-        }
-        if (tmin < 0) return (tmax < 0 ? Infinity : tmax);
-        return tmin;
+let gl, program, uniformLocations = {};
+
+function main() {
+    alert("Controls:\n" + 
+          "- Click on canvas to enable movement\n" + 
+          "- WASD keys to move around\n" + 
+          "- Mouse to look around");
+    
+    const canvas = document.getElementById("canvas");
+    gl = canvas.getContext("webgl");
+    if (!gl) {
+        alert("Unable to initialize WebGL. Your browser may not support it.");
+        return;
     }
-};
-const closestobj = (objs, origin, dir) => {
-    let closest = null, distance = Infinity;
-    for (let i = 0; i < objs.length; i++) {
-        let d = intersection(objs[i], origin, dir);
-        if (d && d < distance) {
-            distance = d;
-            closest = objs[i];
-        }
+    
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    
+    gl.shaderSource(vs, vertexShader);
+    gl.shaderSource(fs, fragmentShader);
+    
+    gl.compileShader(vs);
+    if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+        console.error("Vertex shader error:", gl.getShaderInfoLog(vs));
+        alert("Vertex shader compilation failed. See console for details.");
+        return;
     }
-    if (distance < Infinity) return { closest: closest, distance: distance };
-    return null;
-};
+    
+    gl.compileShader(fs);
+    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+        console.error("Fragment shader error:", gl.getShaderInfoLog(fs));
+        alert("Fragment shader compilation failed. See console for details.");
+        return;
+    }
+    
+    program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error("Program link error:", gl.getProgramInfoLog(program));
+        alert("Shader program linking failed. See console for details.");
+        return;
+    }
+    
+    gl.useProgram(program);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(
+        gl.ARRAY_BUFFER, 
+        new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), 
+        gl.STATIC_DRAW
+    );
+    
+    const posAttrib = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(posAttrib);
+    gl.vertexAttribPointer(posAttrib, 2, gl.FLOAT, false, 0, 0);
+    
+    const getUniform = name => gl.getUniformLocation(program, name);
+    uniformLocations = {
+        uCameraPos: getUniform("uCameraPos"),
+        uCameraDir: getUniform("uCameraDir"),
+        uCameraUp: getUniform("uCameraUp"),
+        uCameraRight: getUniform("uCameraRight"),
+        uLightPos: getUniform("uLightPos"),
+        uLightAmbi: getUniform("uLightAmbi"),
+        uLightDiff: getUniform("uLightDiff"),
+        uLightSpec: getUniform("uLightSpec"),
+        uSphereCount: getUniform("uSphereCount"),
+        uCubeCount: getUniform("uCubeCount")
+    };
+    
+    const cacheArrayUniforms = (baseName, count) => {
+        for (let i = 0; i < count; i++) {
+            uniformLocations[`${baseName}${i}`] = getUniform(`${baseName}[${i}]`);
+        }
+    };
+    
+    ['uSpherePos', 'uSphereRad', 'uSphereColor', 'uSphereAmbi', 
+     'uSphereDiff', 'uSphereSpec', 'uSphereShin', 'uSphereRefl'].forEach(name => {
+        cacheArrayUniforms(name, 10);
+    });
+    
+    ['uCubePos', 'uCubeSize', 'uCubeColor', 'uCubeAmbi', 'uCubeDiff',
+     'uCubeSpec', 'uCubeShin', 'uCubeRefl', 'uCubeRotM', 'uCubeIRotM'].forEach(name => {
+        cacheArrayUniforms(name, 10);
+    });
+    
+    setupControls();
+    
+    requestAnimationFrame(drawloop);
+}
+
 const setupControls = () => {
     document.addEventListener("keydown", (e) => {
         if (e.key.toLowerCase() === "w") keys.w = true;
@@ -79,18 +135,23 @@ const setupControls = () => {
         if (e.key.toLowerCase() === "s") keys.s = true;
         if (e.key.toLowerCase() === "d") keys.d = true;
     });
+    
     document.addEventListener("keyup", (e) => {
         if (e.key.toLowerCase() === "w") keys.w = false;
         if (e.key.toLowerCase() === "a") keys.a = false;
         if (e.key.toLowerCase() === "s") keys.s = false;
         if (e.key.toLowerCase() === "d") keys.d = false;
     });
+    
+    const canvas = document.getElementById("canvas");
     canvas.addEventListener("click", () => {
         canvas.requestPointerLock();
     });
+    
     document.addEventListener("pointerlockchange", () => {
         isPointerLocked = document.pointerLockElement === canvas;
     });
+    
     document.addEventListener("mousemove", (e) => {
         if (isPointerLocked) {
             mouse.x += e.movementX;
@@ -98,27 +159,14 @@ const setupControls = () => {
         }
     });
 };
+
 const updateCamera = () => {
-    const now = Date.now();
-    const isCurrentlyMoving = mouse.x !== 0 || mouse.y !== 0 || keys.w || keys.a || keys.s || keys.d;
-    if (isCurrentlyMoving) {
-        isMoving = true;
-        lastmovetime = now;
-        renderQuality = 0.2;
-    } else if (isMoving) {
-        const timestopped = now - lastmovetime;
-        if (timestopped > 250) {
-            isMoving = false;
-            renderQuality = 1.0;
-        } else {
-            renderQuality = cb.numb.map(timestopped, [0, 100], [0.2, 1.0]);
-        }
-    }
     if (mouse.x !== 0 || mouse.y !== 0) {
         let yawrad = -mouse.x * camera.sensitivity;
         let yawrot = cb.matr.rotator(0, yawrad, 0);
         camera.dir = cb.matr.mulVector(yawrot, camera.dir);
         camera.right = cb.matr.mulVector(yawrot, camera.right);
+        
         let pitchrad = mouse.y * camera.sensitivity;
         let pitchaxis = camera.right;
         let cos = cb.trig.cos(pitchrad);
@@ -141,85 +189,86 @@ const updateCamera = () => {
             ]
         );
         camera.dir = cb.matr.mulVector(pitchrot, camera.dir);
+        
         mouse.x = 0;
         mouse.y = 0;
     }
+    
     camera.dir = cb.vect.normalize(camera.dir);
     camera.right = cb.vect.normalize(cb.vect.cross(camera.dir, cb.vect.init(0, 1, 0)));
     camera.up = cb.vect.normalize(cb.vect.cross(camera.right, camera.dir));
+    
     let moveDir = cb.vect.init(0, 0, 0);
     if (keys.w) moveDir = cb.vect.add(moveDir, camera.dir);
     if (keys.s) moveDir = cb.vect.add(moveDir, cb.vect.scl(camera.dir, -1));
     if (keys.a) moveDir = cb.vect.add(moveDir, cb.vect.scl(camera.right, -1));
     if (keys.d) moveDir = cb.vect.add(moveDir, camera.right);
+    
     if (cb.vect.magsq(moveDir) > 0) {
         moveDir = cb.vect.normalize(moveDir);
         camera.pos = cb.vect.add(camera.pos, cb.vect.scl(moveDir, camera.speed));
     }
 };
-const render = () => {
-    const size = cb.stat.min([window.innerWidth, window.innerHeight]);
-    canvas.style.width = `${size}px`, canvas.style.height = `${size}px`, canvas.width = canvas.height = Math.floor(size * renderQuality);
-    let imageData = ctx.createImageData(canvas.width, canvas.height);
-    for (let x = 0; x <= canvas.width; x++) {
-        for (let y = 0; y <= canvas.height; y++) {
-            let origin = camera.pos, clr = [0, 0, 0], illumination = cb.vect.init(0, 0, 0);
-            let dir = cb.vect.normalize(cb.vect.add(camera.dir, cb.vect.add(cb.vect.scl(camera.right, cb.numb.map(x, [0, canvas.width], [-1, 1])), cb.vect.scl(camera.up, cb.numb.map(y, [0, canvas.height], [-1, 1])))));
-            let reflection = 1, i = 0;
-            const maxIterations = isMoving ? 5 : 10;
-            while (reflection > 0.1 && i < maxIterations) {
-                i++;
-                let closest = closestobj(objs, origin, dir);
-                if (!closest) break;
-                let obj = closest.closest;
-                let intersectionpoint = cb.vect.add(origin, cb.vect.scl(dir, closest.distance));
-                let pointorigin = cb.vect.normalize(cb.vect.sub(origin, intersectionpoint));
-                let surfacenormal;
-                if (obj.rad !== undefined) {
-                    surfacenormal = cb.vect.normalize(cb.vect.sub(intersectionpoint, obj.pos));
-                } else if (obj.size !== undefined) {
-                    let localIntersection = cb.matr.mulVector(obj.irotm, cb.vect.sub(intersectionpoint, obj.pos)), absLocal = cb.vect.absolute(localIntersection), localNormal;
-                    if (absLocal.x >= absLocal.y && absLocal.x >= absLocal.z) {
-                        localNormal = cb.vect.init(cb.numb.sgn(localIntersection.x), 0, 0);
-                    } else if (absLocal.y >= absLocal.x && absLocal.y >= absLocal.z) {
-                        localNormal = cb.vect.init(0, cb.numb.sgn(localIntersection.y), 0);
-                    } else {
-                        localNormal = cb.vect.init(0, 0, cb.numb.sgn(localIntersection.z));
-                    }
-                    surfacenormal = cb.matr.mulVector(obj.rotm, localNormal);
-                }
-                let transpoint = cb.vect.add(intersectionpoint, cb.vect.scl(surfacenormal, 1e-6));
-                let pointlight = cb.vect.normalize(cb.vect.sub(light.pos, transpoint));
-                illumination = cb.vect.add(illumination, cb.vect.fill(obj.ambi * light.ambi, 3));
-                let shadowed = closestobj(objs, transpoint, pointlight);
-                if (!(shadowed && shadowed.distance < cb.vect.mag(cb.vect.sub(light.pos, transpoint)))) {
-                    let diffuse = cb.numb.constrain(cb.vect.dot(pointlight, surfacenormal), [0, 1]);
-                    illumination = cb.vect.add(illumination, cb.vect.fill(obj.diff * light.diff * diffuse, 3));
-                    let specular = cb.numb.constrain(cb.real.pow(cb.vect.dot(cb.vect.normalize(cb.vect.add(pointlight, pointorigin)), surfacenormal), obj.shin), [0, 1]);
-                    illumination = cb.vect.add(illumination, cb.vect.fill(obj.spec * light.spec * specular, 3));
-                }
-                illumination = cb.vect.constrain(cb.vect.scl(illumination, reflection), [0, 255]);
-                clr = [clr[0] + illumination.x * obj.clr[0], clr[1] + illumination.y * obj.clr[1], clr[2] + illumination.z * obj.clr[2]];
-                reflection *= obj.refl;
-                origin = transpoint; 
-                dir = cb.vect.reflect(dir, surfacenormal); 
-            }
-            clr = cb.stat.constrain(clr, [0, 255]);
-            let pixels = imageData.data, px = (x + y * canvas.width) * 4;
-            pixels[px + 0] = clr[0], pixels[px + 1] = clr[1], pixels[px + 2] = clr[2], pixels[px + 3] = 255;
-        }
-    }
-    ctx.putImageData(imageData, 0, 0);
-};
 
-const main = () => {
-    alert("Controls:\n" + "- Click on canvas to enable movement\n" + "- WASD keys to move around\n" + "- Mouse to look around");
-    setupControls();
-    const drawloop = () => {
-        updateCamera();
-        render();
-        requestAnimationFrame(drawloop);
-    };
+function drawloop() {
+    updateCamera();
+    
+    const canvas = document.getElementById("canvas");
+    const size = cb.stat.min([window.innerWidth, window.innerHeight]);
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    canvas.width = canvas.height = size;
+    
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    gl.uniform3fv(uniformLocations.uCameraPos, cb.vect.toFloat32Array(camera.pos));
+    gl.uniform3fv(uniformLocations.uCameraDir, cb.vect.toFloat32Array(camera.dir));
+    gl.uniform3fv(uniformLocations.uCameraUp, cb.vect.toFloat32Array(camera.up));
+    gl.uniform3fv(uniformLocations.uCameraRight, cb.vect.toFloat32Array(camera.right));
+    
+    gl.uniform3fv(uniformLocations.uLightPos, cb.vect.toFloat32Array(light.pos));
+    gl.uniform1f(uniformLocations.uLightAmbi, light.ambi);
+    gl.uniform1f(uniformLocations.uLightDiff, light.diff);
+    gl.uniform1f(uniformLocations.uLightSpec, light.spec);
+    
+    let sphereCount = 0;
+    let cubeCount = 0;
+    
+    objs.forEach(obj => {
+        if (obj.rad !== undefined && sphereCount < 10) {
+            gl.uniform3fv(uniformLocations[`uSpherePos${sphereCount}`], cb.vect.toFloat32Array(obj.pos));
+            gl.uniform1f(uniformLocations[`uSphereRad${sphereCount}`], obj.rad);
+            gl.uniform3f(uniformLocations[`uSphereColor${sphereCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
+            gl.uniform1f(uniformLocations[`uSphereAmbi${sphereCount}`], obj.ambi);
+            gl.uniform1f(uniformLocations[`uSphereDiff${sphereCount}`], obj.diff);
+            gl.uniform1f(uniformLocations[`uSphereSpec${sphereCount}`], obj.spec);
+            gl.uniform1f(uniformLocations[`uSphereShin${sphereCount}`], obj.shin);
+            gl.uniform1f(uniformLocations[`uSphereRefl${sphereCount}`], obj.refl);
+            sphereCount++;
+        } 
+        else if (obj.size !== undefined && cubeCount < 10) {
+            gl.uniform3fv(uniformLocations[`uCubePos${cubeCount}`], cb.vect.toFloat32Array(obj.pos));
+            gl.uniform1f(uniformLocations[`uCubeSize${cubeCount}`], obj.size);
+            gl.uniform3f(uniformLocations[`uCubeColor${cubeCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
+            gl.uniform1f(uniformLocations[`uCubeAmbi${cubeCount}`], obj.ambi);
+            gl.uniform1f(uniformLocations[`uCubeDiff${cubeCount}`], obj.diff);
+            gl.uniform1f(uniformLocations[`uCubeSpec${cubeCount}`], obj.spec);
+            gl.uniform1f(uniformLocations[`uCubeShin${cubeCount}`], obj.shin);
+            gl.uniform1f(uniformLocations[`uCubeRefl${cubeCount}`], obj.refl);
+            gl.uniformMatrix3fv(uniformLocations[`uCubeRotM${cubeCount}`], false, cb.matr.toFloat32Array(obj.rotm));
+            gl.uniformMatrix3fv(uniformLocations[`uCubeIRotM${cubeCount}`], false, cb.matr.toFloat32Array(obj.irotm));
+            cubeCount++;
+        }
+    });
+    
+    gl.uniform1i(uniformLocations.uSphereCount, sphereCount);
+    gl.uniform1i(uniformLocations.uCubeCount, cubeCount);
+    
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    
     requestAnimationFrame(drawloop);
-};
+}
+
 main();
