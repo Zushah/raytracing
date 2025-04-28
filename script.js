@@ -1,6 +1,4 @@
 const cb = Chalkboard;
-cb.matr.toFloat32Array = matr => new Float32Array(cb.matr.toArray(matr));
-cb.vect.toFloat32Array = vect => new Float32Array(cb.vect.toArray(vect));
 
 const light = { pos: cb.vect.init(10, -10, 5), ambi: 0.1, diff: 1.0, spec: 1.0 };
 const sphere = (pos, rad, clr, ambi, diff, spec, shin, refl, trans = 0, ior = 1.5) => {
@@ -223,12 +221,12 @@ function drawloop() {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     
-    gl.uniform3fv(uniformLocations.uCameraPos, cb.vect.toFloat32Array(camera.pos));
-    gl.uniform3fv(uniformLocations.uCameraDir, cb.vect.toFloat32Array(camera.dir));
-    gl.uniform3fv(uniformLocations.uCameraUp, cb.vect.toFloat32Array(camera.up));
-    gl.uniform3fv(uniformLocations.uCameraRight, cb.vect.toFloat32Array(camera.right));
+    gl.uniform3fv(uniformLocations.uCameraPos, cb.vect.toTypedArray(camera.pos));
+    gl.uniform3fv(uniformLocations.uCameraDir, cb.vect.toTypedArray(camera.dir));
+    gl.uniform3fv(uniformLocations.uCameraUp, cb.vect.toTypedArray(camera.up));
+    gl.uniform3fv(uniformLocations.uCameraRight, cb.vect.toTypedArray(camera.right));
     
-    gl.uniform3fv(uniformLocations.uLightPos, cb.vect.toFloat32Array(light.pos));
+    gl.uniform3fv(uniformLocations.uLightPos, cb.vect.toTypedArray(light.pos));
     gl.uniform1f(uniformLocations.uLightAmbi, light.ambi);
     gl.uniform1f(uniformLocations.uLightDiff, light.diff);
     gl.uniform1f(uniformLocations.uLightSpec, light.spec);
@@ -238,7 +236,7 @@ function drawloop() {
     
     objs.forEach(obj => {
         if (obj.rad !== undefined && sphereCount < 10) {
-            gl.uniform3fv(uniformLocations[`uSpherePos${sphereCount}`], cb.vect.toFloat32Array(obj.pos));
+            gl.uniform3fv(uniformLocations[`uSpherePos${sphereCount}`], cb.vect.toTypedArray(obj.pos));
             gl.uniform1f(uniformLocations[`uSphereRad${sphereCount}`], obj.rad);
             gl.uniform3f(uniformLocations[`uSphereColor${sphereCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
             gl.uniform1f(uniformLocations[`uSphereAmbi${sphereCount}`], obj.ambi);
@@ -249,7 +247,7 @@ function drawloop() {
             sphereCount++;
         } 
         else if (obj.size !== undefined && cubeCount < 10) {
-            gl.uniform3fv(uniformLocations[`uCubePos${cubeCount}`], cb.vect.toFloat32Array(obj.pos));
+            gl.uniform3fv(uniformLocations[`uCubePos${cubeCount}`], cb.vect.toTypedArray(obj.pos));
             gl.uniform1f(uniformLocations[`uCubeSize${cubeCount}`], obj.size);
             gl.uniform3f(uniformLocations[`uCubeColor${cubeCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
             gl.uniform1f(uniformLocations[`uCubeAmbi${cubeCount}`], obj.ambi);
@@ -257,8 +255,8 @@ function drawloop() {
             gl.uniform1f(uniformLocations[`uCubeSpec${cubeCount}`], obj.spec);
             gl.uniform1f(uniformLocations[`uCubeShin${cubeCount}`], obj.shin);
             gl.uniform1f(uniformLocations[`uCubeRefl${cubeCount}`], obj.refl);
-            gl.uniformMatrix3fv(uniformLocations[`uCubeRotM${cubeCount}`], false, cb.matr.toFloat32Array(obj.rotm));
-            gl.uniformMatrix3fv(uniformLocations[`uCubeIRotM${cubeCount}`], false, cb.matr.toFloat32Array(obj.irotm));
+            gl.uniformMatrix3fv(uniformLocations[`uCubeRotM${cubeCount}`], false, cb.matr.toTypedArray(obj.rotm));
+            gl.uniformMatrix3fv(uniformLocations[`uCubeIRotM${cubeCount}`], false, cb.matr.toTypedArray(obj.irotm));
             cubeCount++;
         }
     });
