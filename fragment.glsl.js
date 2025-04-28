@@ -34,7 +34,7 @@ uniform float uCubeRefl[10];
 uniform mat3 uCubeRotM[10];
 uniform mat3 uCubeIRotM[10];
 
-const float EPSILON = 0.000001;
+const float EPSILON = 0.0001;
 const float INFINITY = 1000000.0;
 const int MAX_REFLECTIONS = 10;
 

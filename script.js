@@ -35,7 +35,7 @@ let isPointerLocked = false;
 
 let gl, program, uniformLocations = {};
 
-function main() {
+const main = () => {
     alert("Controls:\n" + 
           "- Click on canvas to enable movement\n" + 
           "- WASD keys to move around\n" + 
@@ -124,7 +124,7 @@ function main() {
     setupControls();
     
     requestAnimationFrame(drawloop);
-}
+};
 
 const setupControls = () => {
     document.addEventListener("keydown", (e) => {
@@ -208,7 +208,7 @@ const updateCamera = () => {
     }
 };
 
-function drawloop() {
+const drawloop = () => {
     updateCamera();
     
     const canvas = document.getElementById("canvas");
@@ -267,6 +267,6 @@ function drawloop() {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     
     requestAnimationFrame(drawloop);
-}
+};
 
 main();
