@@ -22,17 +22,19 @@ uniform float uSphereSpec[10];
 uniform float uSphereShin[10];
 uniform float uSphereRefl[10];
 
-uniform int uCubeCount;
-uniform vec3 uCubePos[10];
-uniform float uCubeSize[10];
-uniform vec3 uCubeColor[10];
-uniform float uCubeAmbi[10];
-uniform float uCubeDiff[10];
-uniform float uCubeSpec[10];
-uniform float uCubeShin[10];
-uniform float uCubeRefl[10];
-uniform mat3 uCubeRotM[10];
-uniform mat3 uCubeIRotM[10];
+uniform int uPrismCount;
+uniform vec3 uPrismPos[10];
+uniform float uPrismXLen[10];
+uniform float uPrismYLen[10];
+uniform float uPrismZLen[10];
+uniform vec3 uPrismColor[10];
+uniform float uPrismAmbi[10];
+uniform float uPrismDiff[10];
+uniform float uPrismSpec[10];
+uniform float uPrismShin[10];
+uniform float uPrismRefl[10];
+uniform mat3 uPrismRotM[10];
+uniform mat3 uPrismIRotM[10];
 
 uniform int uCylinderCount;
 uniform vec3 uCylPos[10];
@@ -66,19 +68,21 @@ float intersectSphere(vec3 origin, vec3 dir, vec3 pos, float rad) {
     return INFINITY;
 }
 
-float intersectCube(vec3 origin, vec3 dir, vec3 pos, float size, mat3 irotm) {
+float intersectPrism(vec3 origin, vec3 dir, vec3 pos, float xlen, float ylen, float zlen, mat3 irotm) {
     vec3 localOrigin = irotm * (origin - pos);
     vec3 localDir = irotm * dir;
     
     float tmax = INFINITY;
     float tmin = -INFINITY;
-    float halfSize = size / 2.0;
+    float halfXLen = xlen / 2.0;
+    float halfYLen = ylen / 2.0;
+    float halfZLen = zlen / 2.0;
     
     if (abs(localDir.x) < EPSILON) {
-        if (localOrigin.x < -halfSize || localOrigin.x > halfSize) return INFINITY;
+        if (localOrigin.x < -halfXLen || localOrigin.x > halfXLen) return INFINITY;
     } else {
-        float t1 = (-halfSize - localOrigin.x) / localDir.x;
-        float t2 = (halfSize - localOrigin.x) / localDir.x;
+        float t1 = (-halfXLen - localOrigin.x) / localDir.x;
+        float t2 = (halfXLen - localOrigin.x) / localDir.x;
         if (t1 > t2) { float temp = t1; t1 = t2; t2 = temp; }
         tmin = max(tmin, t1);
         tmax = min(tmax, t2);
@@ -86,10 +90,10 @@ float intersectCube(vec3 origin, vec3 dir, vec3 pos, float size, mat3 irotm) {
     }
     
     if (abs(localDir.y) < EPSILON) {
-        if (localOrigin.y < -halfSize || localOrigin.y > halfSize) return INFINITY;
+        if (localOrigin.y < -halfYLen || localOrigin.y > halfYLen) return INFINITY;
     } else {
-        float t1 = (-halfSize - localOrigin.y) / localDir.y;
-        float t2 = (halfSize - localOrigin.y) / localDir.y;
+        float t1 = (-halfYLen - localOrigin.y) / localDir.y;
+        float t2 = (halfYLen - localOrigin.y) / localDir.y;
         if (t1 > t2) { float temp = t1; t1 = t2; t2 = temp; }
         tmin = max(tmin, t1);
         tmax = min(tmax, t2);
@@ -97,10 +101,10 @@ float intersectCube(vec3 origin, vec3 dir, vec3 pos, float size, mat3 irotm) {
     }
     
     if (abs(localDir.z) < EPSILON) {
-        if (localOrigin.z < -halfSize || localOrigin.z > halfSize) return INFINITY;
+        if (localOrigin.z < -halfZLen || localOrigin.z > halfZLen) return INFINITY;
     } else {
-        float t1 = (-halfSize - localOrigin.z) / localDir.z;
-        float t2 = (halfSize - localOrigin.z) / localDir.z;
+        float t1 = (-halfZLen - localOrigin.z) / localDir.z;
+        float t2 = (halfZLen - localOrigin.z) / localDir.z;
         if (t1 > t2) { float temp = t1; t1 = t2; t2 = temp; }
         tmin = max(tmin, t1);
         tmax = min(tmax, t2);
@@ -177,8 +181,8 @@ bool findClosestObject(vec3 origin, vec3 dir, out float dist, out int objIndex, 
     }
     
     for (int i = 0; i < 10; i++) {
-        if (i >= uCubeCount) break;
-        d = intersectCube(origin, dir, uCubePos[i], uCubeSize[i], uCubeIRotM[i]);
+        if (i >= uPrismCount) break;
+        d = intersectPrism(origin, dir, uPrismPos[i], uPrismXLen[i], uPrismYLen[i], uPrismZLen[i], uPrismIRotM[i]);
         if (d < dist) { 
             dist = d; 
             objIndex = i; 
@@ -215,65 +219,65 @@ vec3 getSphereNormal(vec3 point, int index) {
     return vec3(0.0);
 }
 
-vec3 getCubeNormal(vec3 point, int index) {
+vec3 getPrismNormal(vec3 point, int index) {
     vec3 localPoint;
     vec3 localNormal;
-    vec3 rotm;
+    vec3 halfDims;
 
     if (index == 0) {
-        localPoint = uCubeIRotM[0] * (point - uCubePos[0]);
-        rotm = uCubeRotM[0][0];
+        localPoint = uPrismIRotM[0] * (point - uPrismPos[0]);
+        halfDims = vec3(uPrismXLen[0] / 2.0, uPrismYLen[0] / 2.0, uPrismZLen[0] / 2.0);
     } else if (index == 1) {
-        localPoint = uCubeIRotM[1] * (point - uCubePos[1]);
-        rotm = uCubeRotM[1][0];
+        localPoint = uPrismIRotM[1] * (point - uPrismPos[1]);
+        halfDims = vec3(uPrismXLen[1] / 2.0, uPrismYLen[1] / 2.0, uPrismZLen[1] / 2.0);
     } else if (index == 2) {
-        localPoint = uCubeIRotM[2] * (point - uCubePos[2]);
-        rotm = uCubeRotM[2][0];
+        localPoint = uPrismIRotM[2] * (point - uPrismPos[2]);
+        halfDims = vec3(uPrismXLen[2] / 2.0, uPrismYLen[2] / 2.0, uPrismZLen[2] / 2.0);
     } else if (index == 3) {
-        localPoint = uCubeIRotM[3] * (point - uCubePos[3]);
-        rotm = uCubeRotM[3][0];
+        localPoint = uPrismIRotM[3] * (point - uPrismPos[3]);
+        halfDims = vec3(uPrismXLen[3] / 2.0, uPrismYLen[3] / 2.0, uPrismZLen[3] / 2.0);
     } else if (index == 4) {
-        localPoint = uCubeIRotM[4] * (point - uCubePos[4]);
-        rotm = uCubeRotM[4][0];
+        localPoint = uPrismIRotM[4] * (point - uPrismPos[4]);
+        halfDims = vec3(uPrismXLen[4] / 2.0, uPrismYLen[4] / 2.0, uPrismZLen[4] / 2.0);
     } else if (index == 5) {
-        localPoint = uCubeIRotM[5] * (point - uCubePos[5]);
-        rotm = uCubeRotM[5][0];
+        localPoint = uPrismIRotM[5] * (point - uPrismPos[5]);
+        halfDims = vec3(uPrismXLen[5] / 2.0, uPrismYLen[5] / 2.0, uPrismZLen[5] / 2.0);
     } else if (index == 6) {
-        localPoint = uCubeIRotM[6] * (point - uCubePos[6]);
-        rotm = uCubeRotM[6][0];
+        localPoint = uPrismIRotM[6] * (point - uPrismPos[6]);
+        halfDims = vec3(uPrismXLen[6] / 2.0, uPrismYLen[6] / 2.0, uPrismZLen[6] / 2.0);
     } else if (index == 7) {
-        localPoint = uCubeIRotM[7] * (point - uCubePos[7]);
-        rotm = uCubeRotM[7][0];
+        localPoint = uPrismIRotM[7] * (point - uPrismPos[7]);
+        halfDims = vec3(uPrismXLen[7] / 2.0, uPrismYLen[7] / 2.0, uPrismZLen[7] / 2.0);
     } else if (index == 8) {
-        localPoint = uCubeIRotM[8] * (point - uCubePos[8]);
-        rotm = uCubeRotM[8][0];
+        localPoint = uPrismIRotM[8] * (point - uPrismPos[8]);
+        halfDims = vec3(uPrismXLen[8] / 2.0, uPrismYLen[8] / 2.0, uPrismZLen[8] / 2.0);
     } else if (index == 9) {
-        localPoint = uCubeIRotM[9] * (point - uCubePos[9]);
-        rotm = uCubeRotM[9][0];
+        localPoint = uPrismIRotM[9] * (point - uPrismPos[9]);
+        halfDims = vec3(uPrismXLen[9] / 2.0, uPrismYLen[9] / 2.0, uPrismZLen[9] / 2.0);
     } else {
         return vec3(0.0);
     }
     
-    vec3 absLocal = abs(localPoint);
+    vec3 normPoint = abs(localPoint) / halfDims;
     
-    if (absLocal.x >= absLocal.y && absLocal.x >= absLocal.z) {
+    if (normPoint.x >= normPoint.y && normPoint.x >= normPoint.z) {
         localNormal = vec3(sign(localPoint.x), 0.0, 0.0);
-    } else if (absLocal.y >= absLocal.x && absLocal.y >= absLocal.z) {
+    } else if (normPoint.y >= normPoint.x && normPoint.y >= normPoint.z) {
         localNormal = vec3(0.0, sign(localPoint.y), 0.0);
     } else {
         localNormal = vec3(0.0, 0.0, sign(localPoint.z));
     }
     
-    if (index == 0) return normalize(uCubeRotM[0] * localNormal);
-    if (index == 1) return normalize(uCubeRotM[1] * localNormal);
-    if (index == 2) return normalize(uCubeRotM[2] * localNormal);
-    if (index == 3) return normalize(uCubeRotM[3] * localNormal);
-    if (index == 4) return normalize(uCubeRotM[4] * localNormal);
-    if (index == 5) return normalize(uCubeRotM[5] * localNormal);
-    if (index == 6) return normalize(uCubeRotM[6] * localNormal);
-    if (index == 7) return normalize(uCubeRotM[7] * localNormal);
-    if (index == 8) return normalize(uCubeRotM[8] * localNormal);
-    if (index == 9) return normalize(uCubeRotM[9] * localNormal);
+    if (index == 0) return normalize(uPrismRotM[0] * localNormal);
+    if (index == 1) return normalize(uPrismRotM[1] * localNormal);
+    if (index == 2) return normalize(uPrismRotM[2] * localNormal);
+    if (index == 3) return normalize(uPrismRotM[3] * localNormal);
+    if (index == 4) return normalize(uPrismRotM[4] * localNormal);
+    if (index == 5) return normalize(uPrismRotM[5] * localNormal);
+    if (index == 6) return normalize(uPrismRotM[6] * localNormal);
+    if (index == 7) return normalize(uPrismRotM[7] * localNormal);
+    if (index == 8) return normalize(uPrismRotM[8] * localNormal);
+    if (index == 9) return normalize(uPrismRotM[9] * localNormal);
     
     return vec3(0.0);
 }
@@ -402,7 +406,7 @@ vec3 getSurfaceNormal(vec3 point, int objIndex, bool isSphere, bool isCylinder) 
     } else if (isCylinder) {
         return getCylinderNormal(point, objIndex);
     } else {
-        return getCubeNormal(point, objIndex);
+        return getPrismNormal(point, objIndex);
     }
 }
 
@@ -434,16 +438,16 @@ vec3 getObjectColor(int index, bool isSphere, bool isCylinder) {
         if (index == 8) return uCylColor[8] / 255.0;
         if (index == 9) return uCylColor[9] / 255.0;
     } else {
-        if (index == 0) return uCubeColor[0] / 255.0;
-        if (index == 1) return uCubeColor[1] / 255.0;
-        if (index == 2) return uCubeColor[2] / 255.0;
-        if (index == 3) return uCubeColor[3] / 255.0;
-        if (index == 4) return uCubeColor[4] / 255.0;
-        if (index == 5) return uCubeColor[5] / 255.0;
-        if (index == 6) return uCubeColor[6] / 255.0;
-        if (index == 7) return uCubeColor[7] / 255.0;
-        if (index == 8) return uCubeColor[8] / 255.0;
-        if (index == 9) return uCubeColor[9] / 255.0;
+        if (index == 0) return uPrismColor[0] / 255.0;
+        if (index == 1) return uPrismColor[1] / 255.0;
+        if (index == 2) return uPrismColor[2] / 255.0;
+        if (index == 3) return uPrismColor[3] / 255.0;
+        if (index == 4) return uPrismColor[4] / 255.0;
+        if (index == 5) return uPrismColor[5] / 255.0;
+        if (index == 6) return uPrismColor[6] / 255.0;
+        if (index == 7) return uPrismColor[7] / 255.0;
+        if (index == 8) return uPrismColor[8] / 255.0;
+        if (index == 9) return uPrismColor[9] / 255.0;
     }
     return vec3(1.0, 0.0, 1.0);
 }
@@ -526,35 +530,35 @@ ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder) {
         }
     } else {
         if (index == 0) {
-            props.ambi = uCubeAmbi[0]; props.diff = uCubeDiff[0];
-            props.spec = uCubeSpec[0]; props.shin = uCubeShin[0]; props.refl = uCubeRefl[0];
+            props.ambi = uPrismAmbi[0]; props.diff = uPrismDiff[0];
+            props.spec = uPrismSpec[0]; props.shin = uPrismShin[0]; props.refl = uPrismRefl[0];
         } else if (index == 1) {
-            props.ambi = uCubeAmbi[1]; props.diff = uCubeDiff[1];
-            props.spec = uCubeSpec[1]; props.shin = uCubeShin[1]; props.refl = uCubeRefl[1];
+            props.ambi = uPrismAmbi[1]; props.diff = uPrismDiff[1];
+            props.spec = uPrismSpec[1]; props.shin = uPrismShin[1]; props.refl = uPrismRefl[1];
         } else if (index == 2) {
-            props.ambi = uCubeAmbi[2]; props.diff = uCubeDiff[2];
-            props.spec = uCubeSpec[2]; props.shin = uCubeShin[2]; props.refl = uCubeRefl[2];
+            props.ambi = uPrismAmbi[2]; props.diff = uPrismDiff[2];
+            props.spec = uPrismSpec[2]; props.shin = uPrismShin[2]; props.refl = uPrismRefl[2];
         } else if (index == 3) {
-            props.ambi = uCubeAmbi[3]; props.diff = uCubeDiff[3];
-            props.spec = uCubeSpec[3]; props.shin = uCubeShin[3]; props.refl = uCubeRefl[3];
+            props.ambi = uPrismAmbi[3]; props.diff = uPrismDiff[3];
+            props.spec = uPrismSpec[3]; props.shin = uPrismShin[3]; props.refl = uPrismRefl[3];
         } else if (index == 4) {
-            props.ambi = uCubeAmbi[4]; props.diff = uCubeDiff[4];
-            props.spec = uCubeSpec[4]; props.shin = uCubeShin[4]; props.refl = uCubeRefl[4];
+            props.ambi = uPrismAmbi[4]; props.diff = uPrismDiff[4];
+            props.spec = uPrismSpec[4]; props.shin = uPrismShin[4]; props.refl = uPrismRefl[4];
         } else if (index == 5) {
-            props.ambi = uCubeAmbi[5]; props.diff = uCubeDiff[5];
-            props.spec = uCubeSpec[5]; props.shin = uCubeShin[5]; props.refl = uCubeRefl[5];
+            props.ambi = uPrismAmbi[5]; props.diff = uPrismDiff[5];
+            props.spec = uPrismSpec[5]; props.shin = uPrismShin[5]; props.refl = uPrismRefl[5];
         } else if (index == 6) {
-            props.ambi = uCubeAmbi[6]; props.diff = uCubeDiff[6];
-            props.spec = uCubeSpec[6]; props.shin = uCubeShin[6]; props.refl = uCubeRefl[6];
+            props.ambi = uPrismAmbi[6]; props.diff = uPrismDiff[6];
+            props.spec = uPrismSpec[6]; props.shin = uPrismShin[6]; props.refl = uPrismRefl[6];
         } else if (index == 7) {
-            props.ambi = uCubeAmbi[7]; props.diff = uCubeDiff[7];
-            props.spec = uCubeSpec[7]; props.shin = uCubeShin[7]; props.refl = uCubeRefl[7];
+            props.ambi = uPrismAmbi[7]; props.diff = uPrismDiff[7];
+            props.spec = uPrismSpec[7]; props.shin = uPrismShin[7]; props.refl = uPrismRefl[7];
         } else if (index == 8) {
-            props.ambi = uCubeAmbi[8]; props.diff = uCubeDiff[8];
-            props.spec = uCubeSpec[8]; props.shin = uCubeShin[8]; props.refl = uCubeRefl[8];
+            props.ambi = uPrismAmbi[8]; props.diff = uPrismDiff[8];
+            props.spec = uPrismSpec[8]; props.shin = uPrismShin[8]; props.refl = uPrismRefl[8];
         } else if (index == 9) {
-            props.ambi = uCubeAmbi[9]; props.diff = uCubeDiff[9];
-            props.spec = uCubeSpec[9]; props.shin = uCubeShin[9]; props.refl = uCubeRefl[9];
+            props.ambi = uPrismAmbi[9]; props.diff = uPrismDiff[9];
+            props.spec = uPrismSpec[9]; props.shin = uPrismShin[9]; props.refl = uPrismRefl[9];
         }
     }
 

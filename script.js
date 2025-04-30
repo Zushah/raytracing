@@ -5,9 +5,9 @@ const light = { pos: cb.vect.init(10, -10, 5), ambi: 0.1, diff: 1.0, spec: 1.0 }
 const sphere = (pos, rad, clr, ambi, diff, spec, shin, refl, trans = 0, ior = 1.5) => {
     return { pos, rad, clr, ambi, diff, spec, shin, refl, trans, ior };
 };
-const cube = (pos, size, clr, ambi, diff, spec, shin, refl, rot = 0, trans = 0, ior = 1.5) => {
+const prism = (pos, xlen, ylen, zlen, clr, ambi, diff, spec, shin, refl, rot = 0, trans = 0, ior = 1.5) => {
     let rotm  = cb.matr.rotator(0, cb.trig.toRad(rot), 0), irotm = cb.matr.rotator(0, -cb.trig.toRad(rot), 0);
-    return { pos, size, clr, ambi, diff, spec, shin, refl, rot, rotm, irotm, trans, ior };
+    return { pos, xlen, ylen, zlen, clr, ambi, diff, spec, shin, refl, rot, rotm, irotm, trans, ior };
 };
 const cylinder = (pos, height, rad, clr, ambi, diff, spec, shin, refl, rot = 0, trans = 0, ior = 1.5) => {
     let rotm  = cb.matr.rotator(0, 0, cb.trig.toRad(rot)), irotm = cb.matr.rotator(0, 0, -cb.trig.toRad(rot));
@@ -15,12 +15,12 @@ const cylinder = (pos, height, rad, clr, ambi, diff, spec, shin, refl, rot = 0, 
 };
 
 const objs = [
-    cube(cb.vect.init(0, 53, 0), 100, [255, 255, 255], 0.1, 1.0, 0.1, 1, 0.0),
+    prism(cb.vect.init(0, 3.5, 0), 100, 1, 100, [255, 255, 255], 0, 1.0, 0, 0, 0),
     sphere(cb.vect.init(-1, -2.00, -3), 1.0, [255, 0, 0], 0.1, 0.5, 0.3, 100, 0.2),
     sphere(cb.vect.init(-1,  0.00, -3), 1.0, [0, 255, 0], 0.1, 0.5, 0.3, 100, 0.2),
     sphere(cb.vect.init(-1,  2.00, -3), 1.0, [0, 0, 255], 0.1, 0.5, 0.3, 100, 0.2),
-    cube(cb.vect.init(2, 2.00, -4), 2.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
-    cube(cb.vect.init(2, 0.50, -4), 1.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
+    prism(cb.vect.init(2, 2.00, -4), 2.0, 2.0, 2.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
+    prism(cb.vect.init(2, 0.50, -4), 1.0, 1.0, 1.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
     cylinder(cb.vect.init(2, -0.5, -4), 3.0, 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 90),
     sphere(cb.vect.init(0.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
     sphere(cb.vect.init(3.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
@@ -109,7 +109,7 @@ const main = () => {
         uLightDiff: getUniform("uLightDiff"),
         uLightSpec: getUniform("uLightSpec"),
         uSphereCount: getUniform("uSphereCount"),
-        uCubeCount: getUniform("uCubeCount"),
+        uPrismCount: getUniform("uPrismCount"),
         uCylinderCount: getUniform("uCylinderCount")
     };
     
@@ -120,7 +120,7 @@ const main = () => {
     };
     
     ["uSpherePos","uSphereRad","uSphereColor","uSphereAmbi", "uSphereDiff","uSphereSpec","uSphereShin","uSphereRefl"].forEach((name) => cacheArrayUniforms(name, 10));
-    ["uCubePos","uCubeSize","uCubeColor","uCubeAmbi","uCubeDiff", "uCubeSpec","uCubeShin","uCubeRefl","uCubeRotM","uCubeIRotM"].forEach((name) => cacheArrayUniforms(name, 10));
+    ["uPrismPos","uPrismXLen","uPrismYLen","uPrismZLen","uPrismColor","uPrismAmbi","uPrismDiff", "uPrismSpec","uPrismShin","uPrismRefl","uPrismRotM","uPrismIRotM"].forEach((name) => cacheArrayUniforms(name, 10));
     ["uCylPos","uCylHeight","uCylRad","uCylColor","uCylAmbi", "uCylDiff","uCylSpec","uCylShin","uCylRefl","uCylRotM","uCylIRotM"].forEach((name) => cacheArrayUniforms(name, 10));
     
     setupControls();
@@ -230,7 +230,7 @@ const drawloop = () => {
     gl.uniform1f(uniformLocations.uLightDiff, light.diff);
     gl.uniform1f(uniformLocations.uLightSpec, light.spec);
 
-    let sphereCount = 0, cubeCount = 0, cylinderCount = 0;
+    let sphereCount = 0, prismCount = 0, cylinderCount = 0;
     objs.forEach((obj) => {
         if (obj.rad !== undefined && obj.height === undefined && sphereCount < 10) {
             gl.uniform3fv(uniformLocations[`uSpherePos${sphereCount}`], cb.vect.toTypedArray(obj.pos));
@@ -242,18 +242,20 @@ const drawloop = () => {
             gl.uniform1f(uniformLocations[`uSphereShin${sphereCount}`], obj.shin);
             gl.uniform1f(uniformLocations[`uSphereRefl${sphereCount}`], obj.refl);
             sphereCount++;
-        } else if (obj.size !== undefined && cubeCount < 10) {
-            gl.uniform3fv(uniformLocations[`uCubePos${cubeCount}`], cb.vect.toTypedArray(obj.pos));
-            gl.uniform1f(uniformLocations[`uCubeSize${cubeCount}`], obj.size);
-            gl.uniform3f(uniformLocations[`uCubeColor${cubeCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
-            gl.uniform1f(uniformLocations[`uCubeAmbi${cubeCount}`], obj.ambi);
-            gl.uniform1f(uniformLocations[`uCubeDiff${cubeCount}`], obj.diff);
-            gl.uniform1f(uniformLocations[`uCubeSpec${cubeCount}`], obj.spec);
-            gl.uniform1f(uniformLocations[`uCubeShin${cubeCount}`], obj.shin);
-            gl.uniform1f(uniformLocations[`uCubeRefl${cubeCount}`], obj.refl);
-            gl.uniformMatrix3fv(uniformLocations[`uCubeRotM${cubeCount}`], false, cb.matr.toTypedArray(obj.rotm));
-            gl.uniformMatrix3fv(uniformLocations[`uCubeIRotM${cubeCount}`], false, cb.matr.toTypedArray(obj.irotm));
-            cubeCount++;
+        } else if (obj.xlen !== undefined && prismCount < 10) {
+            gl.uniform3fv(uniformLocations[`uPrismPos${prismCount}`], cb.vect.toTypedArray(obj.pos));
+            gl.uniform1f(uniformLocations[`uPrismXLen${prismCount}`], obj.xlen);
+            gl.uniform1f(uniformLocations[`uPrismYLen${prismCount}`], obj.ylen);
+            gl.uniform1f(uniformLocations[`uPrismZLen${prismCount}`], obj.zlen);
+            gl.uniform3f(uniformLocations[`uPrismColor${prismCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
+            gl.uniform1f(uniformLocations[`uPrismAmbi${prismCount}`], obj.ambi);
+            gl.uniform1f(uniformLocations[`uPrismDiff${prismCount}`], obj.diff);
+            gl.uniform1f(uniformLocations[`uPrismSpec${prismCount}`], obj.spec);
+            gl.uniform1f(uniformLocations[`uPrismShin${prismCount}`], obj.shin);
+            gl.uniform1f(uniformLocations[`uPrismRefl${prismCount}`], obj.refl);
+            gl.uniformMatrix3fv(uniformLocations[`uPrismRotM${prismCount}`], false, cb.matr.toTypedArray(obj.rotm));
+            gl.uniformMatrix3fv(uniformLocations[`uPrismIRotM${prismCount}`], false, cb.matr.toTypedArray(obj.irotm));
+            prismCount++;
         } else if (obj.height !== undefined && obj.rad !== undefined && cylinderCount < 10) {
             gl.uniform3fv(uniformLocations[`uCylPos${cylinderCount}`], cb.vect.toTypedArray(obj.pos));
             gl.uniform1f(uniformLocations[`uCylHeight${cylinderCount}`], obj.height);
@@ -271,7 +273,7 @@ const drawloop = () => {
     });
 
     gl.uniform1i(uniformLocations.uSphereCount, sphereCount);
-    gl.uniform1i(uniformLocations.uCubeCount, cubeCount);
+    gl.uniform1i(uniformLocations.uPrismCount, prismCount);
     gl.uniform1i(uniformLocations.uCylinderCount, cylinderCount);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     requestAnimationFrame(drawloop);
