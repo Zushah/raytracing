@@ -49,6 +49,19 @@ uniform float uCylRefl[10];
 uniform mat3 uCylRotM[10];
 uniform mat3 uCylIRotM[10];
 
+uniform int uPyramidCount;
+uniform vec3 uPyramidPos[10];
+uniform float uPyramidWidth[10];
+uniform float uPyramidHeight[10];
+uniform vec3 uPyramidColor[10];
+uniform float uPyramidAmbi[10];
+uniform float uPyramidDiff[10];
+uniform float uPyramidSpec[10];
+uniform float uPyramidShin[10];
+uniform float uPyramidRefl[10];
+uniform mat3 uPyramidRotM[10];
+uniform mat3 uPyramidIRotM[10];
+
 const float EPSILON = 0.0001;
 const float INFINITY = 1000000.0;
 const int MAX_REFLECTIONS = 10;
@@ -161,11 +174,155 @@ float intersectCylinder(vec3 origin, vec3 dir, vec3 pos, float height, float rad
     return min(tSide, tCap);
 }
 
-bool findClosestObject(vec3 origin, vec3 dir, out float dist, out int objIndex, out bool isSphere, out bool isCylinder) {
+float intersectPyramid(vec3 origin, vec3 dir, vec3 pos, float width, float height, mat3 irotm) {
+    vec3 o = irotm * (origin - pos);
+    vec3 d = irotm * dir;
+    
+    float halfWidth = width / 2.0;
+    
+    float baseY = height / 2.0;
+    float tBase = INFINITY;
+    
+    if (abs(d.y) > EPSILON) {
+        float t = (baseY - o.y) / d.y;
+        if (t > 0.0) {
+            float x = o.x + d.x * t;
+            float z = o.z + d.z * t;
+            if (abs(x) <= halfWidth && abs(z) <= halfWidth) {
+                tBase = t;
+            }
+        }
+    }
+    
+    vec3 apex = vec3(0.0, -height / 2.0, 0.0);
+    float tFaces = INFINITY;
+    
+    vec3 base0 = vec3(-halfWidth, baseY, -halfWidth);
+    vec3 base1 = vec3(halfWidth, baseY, -halfWidth);
+    vec3 base2 = vec3(halfWidth, baseY, halfWidth);
+    vec3 base3 = vec3(-halfWidth, baseY, halfWidth);
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base0;
+        vec3 v2 = base1;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 normal = normalize(cross(edge1, edge2));
+        
+        float denom = dot(normal, d);
+        if (abs(denom) > EPSILON) {
+            float t = dot(v0 - o, normal) / denom;
+            if (t > 0.0) {
+                vec3 p = o + d * t;
+                
+                vec3 c1 = cross(v1 - v0, p - v0);
+                vec3 c2 = cross(v2 - v1, p - v1);
+                vec3 c3 = cross(v0 - v2, p - v2);
+                
+                bool sameSide = dot(c1, normal) > 0.0 && dot(c2, normal) > 0.0 && dot(c3, normal) > 0.0;
+                
+                if (sameSide && t < tFaces) {
+                    tFaces = t;
+                }
+            }
+        }
+    }
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base1;
+        vec3 v2 = base2;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 normal = normalize(cross(edge1, edge2));
+        
+        float denom = dot(normal, d);
+        if (abs(denom) > EPSILON) {
+            float t = dot(v0 - o, normal) / denom;
+            if (t > 0.0) {
+                vec3 p = o + d * t;
+                
+                vec3 c1 = cross(v1 - v0, p - v0);
+                vec3 c2 = cross(v2 - v1, p - v1);
+                vec3 c3 = cross(v0 - v2, p - v2);
+                
+                bool sameSide = dot(c1, normal) > 0.0 && dot(c2, normal) > 0.0 && dot(c3, normal) > 0.0;
+                
+                if (sameSide && t < tFaces) {
+                    tFaces = t;
+                }
+            }
+        }
+    }
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base2;
+        vec3 v2 = base3;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 normal = normalize(cross(edge1, edge2));
+        
+        float denom = dot(normal, d);
+        if (abs(denom) > EPSILON) {
+            float t = dot(v0 - o, normal) / denom;
+            if (t > 0.0) {
+                vec3 p = o + d * t;
+                
+                vec3 c1 = cross(v1 - v0, p - v0);
+                vec3 c2 = cross(v2 - v1, p - v1);
+                vec3 c3 = cross(v0 - v2, p - v2);
+                
+                bool sameSide = dot(c1, normal) > 0.0 && dot(c2, normal) > 0.0 && dot(c3, normal) > 0.0;
+                
+                if (sameSide && t < tFaces) {
+                    tFaces = t;
+                }
+            }
+        }
+    }
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base3;
+        vec3 v2 = base0;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 normal = normalize(cross(edge1, edge2));
+        
+        float denom = dot(normal, d);
+        if (abs(denom) > EPSILON) {
+            float t = dot(v0 - o, normal) / denom;
+            if (t > 0.0) {
+                vec3 p = o + d * t;
+                
+                vec3 c1 = cross(v1 - v0, p - v0);
+                vec3 c2 = cross(v2 - v1, p - v1);
+                vec3 c3 = cross(v0 - v2, p - v2);
+                
+                bool sameSide = dot(c1, normal) > 0.0 && dot(c2, normal) > 0.0 && dot(c3, normal) > 0.0;
+                
+                if (sameSide && t < tFaces) {
+                    tFaces = t;
+                }
+            }
+        }
+    }
+    
+    return min(tBase, tFaces);
+}
+
+bool findClosestObject(vec3 origin, vec3 dir, out float dist, out int objIndex, out bool isSphere, out bool isCylinder, out bool isPyramid) {
     dist = INFINITY;
     objIndex = -1;
     isSphere = false;
     isCylinder = false;
+    isPyramid = false;
     
     float d;
     
@@ -176,7 +333,8 @@ bool findClosestObject(vec3 origin, vec3 dir, out float dist, out int objIndex, 
             dist = d; 
             objIndex = i; 
             isSphere = true; 
-            isCylinder = false;
+            isCylinder = false; 
+            isPyramid = false;
         }
     }
     
@@ -188,6 +346,7 @@ bool findClosestObject(vec3 origin, vec3 dir, out float dist, out int objIndex, 
             objIndex = i; 
             isSphere = false; 
             isCylinder = false;
+            isPyramid = false;
         }
     }
     
@@ -199,6 +358,19 @@ bool findClosestObject(vec3 origin, vec3 dir, out float dist, out int objIndex, 
             objIndex = i; 
             isSphere = false; 
             isCylinder = true;
+            isPyramid = false;
+        }
+    }
+    
+    for (int i = 0; i < 10; i++) {
+        if (i >= uPyramidCount) break;
+        d = intersectPyramid(origin, dir, uPyramidPos[i], uPyramidWidth[i], uPyramidHeight[i], uPyramidIRotM[i]);
+        if (d < dist) { 
+            dist = d; 
+            objIndex = i; 
+            isSphere = false; 
+            isCylinder = false;
+            isPyramid = true;
         }
     }
     
@@ -400,11 +572,129 @@ vec3 getCylinderNormal(vec3 point, int index) {
     return vec3(0.0);
 }
 
-vec3 getSurfaceNormal(vec3 point, int objIndex, bool isSphere, bool isCylinder) {
+vec3 getPyramidNormal(vec3 point, int index) {
+    vec3 localPoint;
+    float halfWidth;
+    float halfHeight;
+    vec3 apex;
+    
+    if (index == 0) {
+        localPoint = uPyramidIRotM[0] * (point - uPyramidPos[0]);
+        halfWidth = uPyramidWidth[0] / 2.0;
+        halfHeight = uPyramidHeight[0] / 2.0;
+        apex = vec3(0.0, -halfHeight, 0.0);
+        
+        if (abs(localPoint.y - halfHeight) < EPSILON) {
+            return normalize(uPyramidRotM[0] * vec3(0.0, 1.0, 0.0));
+        }
+    } else if (index == 1) {
+        localPoint = uPyramidIRotM[1] * (point - uPyramidPos[1]);
+        halfWidth = uPyramidWidth[1] / 2.0;
+        halfHeight = uPyramidHeight[1] / 2.0;
+        apex = vec3(0.0, -halfHeight, 0.0);
+        
+        if (abs(localPoint.y - halfHeight) < EPSILON) {
+            return normalize(uPyramidRotM[1] * vec3(0.0, 1.0, 0.0));
+        }
+    }
+    
+    vec3 base0 = vec3(-halfWidth, halfHeight, -halfWidth);
+    vec3 base1 = vec3(halfWidth, halfHeight, -halfWidth);
+    vec3 base2 = vec3(halfWidth, halfHeight, halfWidth);
+    vec3 base3 = vec3(-halfWidth, halfHeight, halfWidth);
+    
+    float minDist = INFINITY;
+    vec3 normal = vec3(0.0);
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base0;
+        vec3 v2 = base1;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 faceNormal = normalize(cross(edge1, edge2));
+        
+        float dist = abs(dot(faceNormal, localPoint - v0));
+        
+        if (dist < minDist) {
+            minDist = dist;
+            normal = faceNormal;
+        }
+    }
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base1;
+        vec3 v2 = base2;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 faceNormal = normalize(cross(edge1, edge2));
+        
+        float dist = abs(dot(faceNormal, localPoint - v0));
+        
+        if (dist < minDist) {
+            minDist = dist;
+            normal = faceNormal;
+        }
+    }
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base2;
+        vec3 v2 = base3;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 faceNormal = normalize(cross(edge1, edge2));
+        
+        float dist = abs(dot(faceNormal, localPoint - v0));
+        
+        if (dist < minDist) {
+            minDist = dist;
+            normal = faceNormal;
+        }
+    }
+    
+    {
+        vec3 v0 = apex;
+        vec3 v1 = base3;
+        vec3 v2 = base0;
+        
+        vec3 edge1 = v1 - v0;
+        vec3 edge2 = v2 - v0;
+        vec3 faceNormal = normalize(cross(edge1, edge2));
+        
+        float dist = abs(dot(faceNormal, localPoint - v0));
+        
+        if (dist < minDist) {
+            minDist = dist;
+            normal = faceNormal;
+        }
+    }
+    
+    if (index == 0) return normalize(uPyramidRotM[0] * normal);
+    if (index == 1) return normalize(uPyramidRotM[1] * normal);
+    if (index == 2) return normalize(uPyramidRotM[2] * normal);
+    if (index == 3) return normalize(uPyramidRotM[3] * normal);
+    if (index == 4) return normalize(uPyramidRotM[4] * normal);
+    if (index == 5) return normalize(uPyramidRotM[5] * normal);
+    if (index == 6) return normalize(uPyramidRotM[6] * normal);
+    if (index == 7) return normalize(uPyramidRotM[7] * normal);
+    if (index == 8) return normalize(uPyramidRotM[8] * normal);
+    if (index == 9) return normalize(uPyramidRotM[9] * normal);
+    
+    return vec3(0.0);
+}
+
+vec3 getSurfaceNormal(vec3 point, int objIndex, bool isSphere, bool isCylinder, bool isPyramid) {
     if (isSphere) {
         return getSphereNormal(point, objIndex);
     } else if (isCylinder) {
         return getCylinderNormal(point, objIndex);
+    } else if (isPyramid) {
+        return getPyramidNormal(point, objIndex);
     } else {
         return getPrismNormal(point, objIndex);
     }
@@ -414,7 +704,7 @@ vec3 reflectVector(vec3 v, vec3 n) {
     return v - 2.0 * dot(v, n) * n;
 }
 
-vec3 getObjectColor(int index, bool isSphere, bool isCylinder) {
+vec3 getObjectColor(int index, bool isSphere, bool isCylinder, bool isPyramid) {
     if (isSphere) {
         if (index == 0) return uSphereColor[0] / 255.0;
         if (index == 1) return uSphereColor[1] / 255.0;
@@ -437,6 +727,17 @@ vec3 getObjectColor(int index, bool isSphere, bool isCylinder) {
         if (index == 7) return uCylColor[7] / 255.0;
         if (index == 8) return uCylColor[8] / 255.0;
         if (index == 9) return uCylColor[9] / 255.0;
+    } else if (isPyramid) {
+        if (index == 0) return uPyramidColor[0] / 255.0;
+        if (index == 1) return uPyramidColor[1] / 255.0;
+        if (index == 2) return uPyramidColor[2] / 255.0;
+        if (index == 3) return uPyramidColor[3] / 255.0;
+        if (index == 4) return uPyramidColor[4] / 255.0;
+        if (index == 5) return uPyramidColor[5] / 255.0;
+        if (index == 6) return uPyramidColor[6] / 255.0;
+        if (index == 7) return uPyramidColor[7] / 255.0;
+        if (index == 8) return uPyramidColor[8] / 255.0;
+        if (index == 9) return uPyramidColor[9] / 255.0;
     } else {
         if (index == 0) return uPrismColor[0] / 255.0;
         if (index == 1) return uPrismColor[1] / 255.0;
@@ -460,7 +761,7 @@ struct ObjectProps {
     float refl;
 };
 
-ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder) {
+ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder, bool isPyramid) {
     ObjectProps props;
     props.ambi = 0.2; props.diff = 0.7; props.spec = 0.5; props.shin = 30.0; props.refl = 0.0;
 
@@ -528,6 +829,38 @@ ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder) {
             props.ambi = uCylAmbi[9]; props.diff = uCylDiff[9];
             props.spec = uCylSpec[9]; props.shin = uCylShin[9]; props.refl = uCylRefl[9];
         }
+    } else if (isPyramid) {
+        if (index == 0) {
+            props.ambi = uPyramidAmbi[0]; props.diff = uPyramidDiff[0];
+            props.spec = uPyramidSpec[0]; props.shin = uPyramidShin[0]; props.refl = uPyramidRefl[0];
+        } else if (index == 1) {
+            props.ambi = uPyramidAmbi[1]; props.diff = uPyramidDiff[1];
+            props.spec = uPyramidSpec[1]; props.shin = uPyramidShin[1]; props.refl = uPyramidRefl[1];
+        } else if (index == 2) {
+            props.ambi = uPyramidAmbi[2]; props.diff = uPyramidDiff[2];
+            props.spec = uPyramidSpec[2]; props.shin = uPyramidShin[2]; props.refl = uPyramidRefl[2];
+        } else if (index == 3) {
+            props.ambi = uPyramidAmbi[3]; props.diff = uPyramidDiff[3];
+            props.spec = uPyramidSpec[3]; props.shin = uPyramidShin[3]; props.refl = uPyramidRefl[3];
+        } else if (index == 4) {
+            props.ambi = uPyramidAmbi[4]; props.diff = uPyramidDiff[4];
+            props.spec = uPyramidSpec[4]; props.shin = uPyramidShin[4]; props.refl = uPyramidRefl[4];
+        } else if (index == 5) {
+            props.ambi = uPyramidAmbi[5]; props.diff = uPyramidDiff[5];
+            props.spec = uPyramidSpec[5]; props.shin = uPyramidShin[5]; props.refl = uPyramidRefl[5];
+        } else if (index == 6) {
+            props.ambi = uPyramidAmbi[6]; props.diff = uPyramidDiff[6];
+            props.spec = uPyramidSpec[6]; props.shin = uPyramidShin[6]; props.refl = uPyramidRefl[6];
+        } else if (index == 7) {
+            props.ambi = uPyramidAmbi[7]; props.diff = uPyramidDiff[7];
+            props.spec = uPyramidSpec[7]; props.shin = uPyramidShin[7]; props.refl = uPyramidRefl[7];
+        } else if (index == 8) {
+            props.ambi = uPyramidAmbi[8]; props.diff = uPyramidDiff[8];
+            props.spec = uPyramidSpec[8]; props.shin = uPyramidShin[8]; props.refl = uPyramidRefl[8];
+        } else if (index == 9) {
+            props.ambi = uPyramidAmbi[9]; props.diff = uPyramidDiff[9];
+            props.spec = uPyramidSpec[9]; props.shin = uPyramidShin[9]; props.refl = uPyramidRefl[9];
+        }
     } else {
         if (index == 0) {
             props.ambi = uPrismAmbi[0]; props.diff = uPrismDiff[0];
@@ -579,29 +912,28 @@ void main() {
         int objIndex;
         bool isSphere;
         bool isCylinder;
+        bool isPyramid;
 
-        if (!findClosestObject(rayOrigin, rayDir, dist, objIndex, isSphere, isCylinder)) {
+        if (!findClosestObject(rayOrigin, rayDir, dist, objIndex, isSphere, isCylinder, isPyramid)) {
             break;
         }
 
-        vec3 objColor = getObjectColor(objIndex, isSphere, isCylinder);
-        ObjectProps props = getObjectProps(objIndex, isSphere, isCylinder);
+        vec3 objColor = getObjectColor(objIndex, isSphere, isCylinder, isPyramid);
+        ObjectProps props = getObjectProps(objIndex, isSphere, isCylinder, isPyramid);
 
         vec3 intersectionPoint = rayOrigin + dist * rayDir;
-        vec3 normal = getSurfaceNormal(intersectionPoint, objIndex, isSphere, isCylinder);
+        vec3 normal = getSurfaceNormal(intersectionPoint, objIndex, isSphere, isCylinder, isPyramid);
         vec3 pointOrigin = normalize(rayOrigin - intersectionPoint);
-
         vec3 transPoint = intersectionPoint + normal * EPSILON;
-
         vec3 toLight = normalize(uLightPos - transPoint);
-
         vec3 illumination = vec3(props.ambi * uLightAmbi);
 
         float shadowDist;
         int shadowObjIndex;
         bool shadowIsSphere;
         bool shadowIsCylinder;
-        bool inShadow = findClosestObject(transPoint, toLight, shadowDist, shadowObjIndex, shadowIsSphere, shadowIsCylinder) && shadowDist < distance(uLightPos, transPoint);
+        bool shadowIsPyramid;
+        bool inShadow = findClosestObject(transPoint, toLight, shadowDist, shadowObjIndex, shadowIsSphere, shadowIsCylinder, shadowIsPyramid) && shadowDist < distance(uLightPos, transPoint);
 
         if (!inShadow) {
             float diff = max(0.0, dot(toLight, normal));

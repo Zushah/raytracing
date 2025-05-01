@@ -13,14 +13,18 @@ const cylinder = (pos, height, rad, clr, ambi, diff, spec, shin, refl, rot = 0, 
     let rotm  = cb.matr.rotator(0, 0, cb.trig.toRad(rot)), irotm = cb.matr.rotator(0, 0, -cb.trig.toRad(rot));
     return { pos, height, rad, clr, ambi, diff, spec, shin, refl, rot, rotm, irotm, trans, ior };
 };
+const pyramid = (pos, width, height, clr, ambi, diff, spec, shin, refl, rot = 0, trans = 0, ior = 1.5) => {
+    let rotm  = cb.matr.rotator(0, cb.trig.toRad(rot), 0), irotm = cb.matr.rotator(0, -cb.trig.toRad(rot), 0);
+    return { pos, width, height, clr, ambi, diff, spec, shin, refl, rot, rotm, irotm, trans, ior };
+};
 
 const objs = [
     prism(cb.vect.init(0, 3.5, 0), 100, 1, 100, [255, 255, 255], 0, 1.0, 0, 0, 0),
     sphere(cb.vect.init(-1, -2.00, -3), 1.0, [255, 0, 0], 0.1, 0.5, 0.3, 100, 0.2),
     sphere(cb.vect.init(-1,  0.00, -3), 1.0, [0, 255, 0], 0.1, 0.5, 0.3, 100, 0.2),
     sphere(cb.vect.init(-1,  2.00, -3), 1.0, [0, 0, 255], 0.1, 0.5, 0.3, 100, 0.2),
-    prism(cb.vect.init(2, 2.00, -4), 2.0, 2.0, 2.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
-    prism(cb.vect.init(2, 0.50, -4), 1.0, 1.0, 1.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
+    prism(cb.vect.init(2, 2.00, -4), 1.5, 2.0, 1.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
+    pyramid(cb.vect.init(2, 0.50, -4), 1.0, 1.0, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 45),
     cylinder(cb.vect.init(2, -0.5, -4), 3.0, 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0, 90),
     sphere(cb.vect.init(0.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
     sphere(cb.vect.init(3.5, 2.50, -2.5), 0.5, [255, 255, 255], 0.1, 0.1, 1.0, 1000, 1.0),
@@ -110,7 +114,8 @@ const main = () => {
         uLightSpec: getUniform("uLightSpec"),
         uSphereCount: getUniform("uSphereCount"),
         uPrismCount: getUniform("uPrismCount"),
-        uCylinderCount: getUniform("uCylinderCount")
+        uCylinderCount: getUniform("uCylinderCount"),
+        uPyramidCount: getUniform("uPyramidCount")
     };
     
     const cacheArrayUniforms = (baseName, count) => {
@@ -122,7 +127,8 @@ const main = () => {
     ["uSpherePos","uSphereRad","uSphereColor","uSphereAmbi", "uSphereDiff","uSphereSpec","uSphereShin","uSphereRefl"].forEach((name) => cacheArrayUniforms(name, 10));
     ["uPrismPos","uPrismXLen","uPrismYLen","uPrismZLen","uPrismColor","uPrismAmbi","uPrismDiff", "uPrismSpec","uPrismShin","uPrismRefl","uPrismRotM","uPrismIRotM"].forEach((name) => cacheArrayUniforms(name, 10));
     ["uCylPos","uCylHeight","uCylRad","uCylColor","uCylAmbi", "uCylDiff","uCylSpec","uCylShin","uCylRefl","uCylRotM","uCylIRotM"].forEach((name) => cacheArrayUniforms(name, 10));
-    
+    ["uPyramidPos","uPyramidWidth","uPyramidHeight","uPyramidColor","uPyramidAmbi", "uPyramidDiff","uPyramidSpec","uPyramidShin","uPyramidRefl","uPyramidRotM","uPyramidIRotM"].forEach((name) => cacheArrayUniforms(name, 10));
+
     setupControls();
 
     requestAnimationFrame(drawloop);
@@ -230,7 +236,7 @@ const drawloop = () => {
     gl.uniform1f(uniformLocations.uLightDiff, light.diff);
     gl.uniform1f(uniformLocations.uLightSpec, light.spec);
 
-    let sphereCount = 0, prismCount = 0, cylinderCount = 0;
+    let sphereCount = 0, prismCount = 0, cylinderCount = 0, pyramidCount = 0;
     objs.forEach((obj) => {
         if (obj.rad !== undefined && obj.height === undefined && sphereCount < 10) {
             gl.uniform3fv(uniformLocations[`uSpherePos${sphereCount}`], cb.vect.toTypedArray(obj.pos));
@@ -269,12 +275,26 @@ const drawloop = () => {
             gl.uniformMatrix3fv(uniformLocations[`uCylRotM${cylinderCount}`], false, cb.matr.toTypedArray(obj.rotm));
             gl.uniformMatrix3fv(uniformLocations[`uCylIRotM${cylinderCount}`], false, cb.matr.toTypedArray(obj.irotm));
             cylinderCount++;
+        } else if (obj.width !== undefined && obj.height !== undefined && !obj.rad && pyramidCount < 10) {
+            gl.uniform3fv(uniformLocations[`uPyramidPos${pyramidCount}`], cb.vect.toTypedArray(obj.pos));
+            gl.uniform1f(uniformLocations[`uPyramidWidth${pyramidCount}`], obj.width);
+            gl.uniform1f(uniformLocations[`uPyramidHeight${pyramidCount}`], obj.height);
+            gl.uniform3f(uniformLocations[`uPyramidColor${pyramidCount}`], obj.clr[0], obj.clr[1], obj.clr[2]);
+            gl.uniform1f(uniformLocations[`uPyramidAmbi${pyramidCount}`], obj.ambi);
+            gl.uniform1f(uniformLocations[`uPyramidDiff${pyramidCount}`], obj.diff);
+            gl.uniform1f(uniformLocations[`uPyramidSpec${pyramidCount}`], obj.spec);
+            gl.uniform1f(uniformLocations[`uPyramidShin${pyramidCount}`], obj.shin);
+            gl.uniform1f(uniformLocations[`uPyramidRefl${pyramidCount}`], obj.refl);
+            gl.uniformMatrix3fv(uniformLocations[`uPyramidRotM${pyramidCount}`], false, cb.matr.toTypedArray(obj.rotm));
+            gl.uniformMatrix3fv(uniformLocations[`uPyramidIRotM${pyramidCount}`], false, cb.matr.toTypedArray(obj.irotm));
+            pyramidCount++;
         }
     });
 
     gl.uniform1i(uniformLocations.uSphereCount, sphereCount);
     gl.uniform1i(uniformLocations.uPrismCount, prismCount);
     gl.uniform1i(uniformLocations.uCylinderCount, cylinderCount);
+    gl.uniform1i(uniformLocations.uPyramidCount, pyramidCount);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     requestAnimationFrame(drawloop);
 };
