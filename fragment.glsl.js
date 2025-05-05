@@ -23,44 +23,44 @@ uniform float uSphereShin[10];
 uniform float uSphereRefl[10];
 
 uniform int uPrismCount;
-uniform vec3 uPrismPos[10];
-uniform float uPrismXLen[10];
-uniform float uPrismYLen[10];
-uniform float uPrismZLen[10];
-uniform vec3 uPrismColor[10];
-uniform float uPrismAmbi[10];
-uniform float uPrismDiff[10];
-uniform float uPrismSpec[10];
-uniform float uPrismShin[10];
-uniform float uPrismRefl[10];
-uniform mat3 uPrismRotM[10];
-uniform mat3 uPrismIRotM[10];
+uniform vec3 uPrismPos[5];
+uniform float uPrismXLen[5];
+uniform float uPrismYLen[5];
+uniform float uPrismZLen[5];
+uniform vec3 uPrismColor[5];
+uniform float uPrismAmbi[5];
+uniform float uPrismDiff[5];
+uniform float uPrismSpec[5];
+uniform float uPrismShin[5];
+uniform float uPrismRefl[5];
+uniform mat3 uPrismRotM[5];
+uniform mat3 uPrismIRotM[5];
 
 uniform int uCylinderCount;
-uniform vec3 uCylPos[10];
-uniform float uCylHeight[10];
-uniform float uCylRad[10];
-uniform vec3 uCylColor[10];
-uniform float uCylAmbi[10];
-uniform float uCylDiff[10];
-uniform float uCylSpec[10];
-uniform float uCylShin[10];
-uniform float uCylRefl[10];
-uniform mat3 uCylRotM[10];
-uniform mat3 uCylIRotM[10];
+uniform vec3 uCylPos[5];
+uniform float uCylHeight[5];
+uniform float uCylRad[5];
+uniform vec3 uCylColor[5];
+uniform float uCylAmbi[5];
+uniform float uCylDiff[5];
+uniform float uCylSpec[5];
+uniform float uCylShin[5];
+uniform float uCylRefl[5];
+uniform mat3 uCylRotM[5];
+uniform mat3 uCylIRotM[5];
 
 uniform int uPyramidCount;
-uniform vec3 uPyramidPos[10];
-uniform float uPyramidWidth[10];
-uniform float uPyramidHeight[10];
-uniform vec3 uPyramidColor[10];
-uniform float uPyramidAmbi[10];
-uniform float uPyramidDiff[10];
-uniform float uPyramidSpec[10];
-uniform float uPyramidShin[10];
-uniform float uPyramidRefl[10];
-uniform mat3 uPyramidRotM[10];
-uniform mat3 uPyramidIRotM[10];
+uniform vec3 uPyramidPos[6];
+uniform float uPyramidWidth[6];
+uniform float uPyramidHeight[6];
+uniform vec3 uPyramidColor[6];
+uniform float uPyramidAmbi[6];
+uniform float uPyramidDiff[6];
+uniform float uPyramidSpec[6];
+uniform float uPyramidShin[6];
+uniform float uPyramidRefl[6];
+uniform mat3 uPyramidRotM[6];
+uniform mat3 uPyramidIRotM[6];
 
 const float EPSILON = 0.0001;
 const float INFINITY = 1000000.0;
@@ -411,21 +411,6 @@ vec3 getPrismNormal(vec3 point, int index) {
     } else if (index == 4) {
         localPoint = uPrismIRotM[4] * (point - uPrismPos[4]);
         halfDims = vec3(uPrismXLen[4] / 2.0, uPrismYLen[4] / 2.0, uPrismZLen[4] / 2.0);
-    } else if (index == 5) {
-        localPoint = uPrismIRotM[5] * (point - uPrismPos[5]);
-        halfDims = vec3(uPrismXLen[5] / 2.0, uPrismYLen[5] / 2.0, uPrismZLen[5] / 2.0);
-    } else if (index == 6) {
-        localPoint = uPrismIRotM[6] * (point - uPrismPos[6]);
-        halfDims = vec3(uPrismXLen[6] / 2.0, uPrismYLen[6] / 2.0, uPrismZLen[6] / 2.0);
-    } else if (index == 7) {
-        localPoint = uPrismIRotM[7] * (point - uPrismPos[7]);
-        halfDims = vec3(uPrismXLen[7] / 2.0, uPrismYLen[7] / 2.0, uPrismZLen[7] / 2.0);
-    } else if (index == 8) {
-        localPoint = uPrismIRotM[8] * (point - uPrismPos[8]);
-        halfDims = vec3(uPrismXLen[8] / 2.0, uPrismYLen[8] / 2.0, uPrismZLen[8] / 2.0);
-    } else if (index == 9) {
-        localPoint = uPrismIRotM[9] * (point - uPrismPos[9]);
-        halfDims = vec3(uPrismXLen[9] / 2.0, uPrismYLen[9] / 2.0, uPrismZLen[9] / 2.0);
     } else {
         return vec3(0.0);
     }
@@ -445,11 +430,6 @@ vec3 getPrismNormal(vec3 point, int index) {
     if (index == 2) return normalize(uPrismRotM[2] * localNormal);
     if (index == 3) return normalize(uPrismRotM[3] * localNormal);
     if (index == 4) return normalize(uPrismRotM[4] * localNormal);
-    if (index == 5) return normalize(uPrismRotM[5] * localNormal);
-    if (index == 6) return normalize(uPrismRotM[6] * localNormal);
-    if (index == 7) return normalize(uPrismRotM[7] * localNormal);
-    if (index == 8) return normalize(uPrismRotM[8] * localNormal);
-    if (index == 9) return normalize(uPrismRotM[9] * localNormal);
     
     return vec3(0.0);
 }
@@ -513,61 +493,6 @@ vec3 getCylinderNormal(vec3 point, int index) {
             vec3 sideNormal = vec3(localPoint.x, 0.0, localPoint.z);
             return normalize(uCylRotM[4] * sideNormal);
         }
-    } else if (index == 5) {
-        localPoint = uCylIRotM[5] * (point - uCylPos[5]);
-        halfHeight = uCylHeight[5] / 2.0;
-        if (abs(localPoint.y - halfHeight) < EPSILON) {
-            return normalize(uCylRotM[5] * vec3(0.0, 1.0, 0.0));
-        } else if (abs(localPoint.y + halfHeight) < EPSILON) {
-            return normalize(uCylRotM[5] * vec3(0.0, -1.0, 0.0));
-        } else {
-            vec3 sideNormal = vec3(localPoint.x, 0.0, localPoint.z);
-            return normalize(uCylRotM[5] * sideNormal);
-        }
-    } else if (index == 6) {
-        localPoint = uCylIRotM[6] * (point - uCylPos[6]);
-        halfHeight = uCylHeight[6] / 2.0;
-        if (abs(localPoint.y - halfHeight) < EPSILON) {
-            return normalize(uCylRotM[6] * vec3(0.0, 1.0, 0.0));
-        } else if (abs(localPoint.y + halfHeight) < EPSILON) {
-            return normalize(uCylRotM[6] * vec3(0.0, -1.0, 0.0));
-        } else {
-            vec3 sideNormal = vec3(localPoint.x, 0.0, localPoint.z);
-            return normalize(uCylRotM[6] * sideNormal);
-        }
-    } else if (index == 7) {
-        localPoint = uCylIRotM[7] * (point - uCylPos[7]);
-        halfHeight = uCylHeight[7] / 2.0;
-        if (abs(localPoint.y - halfHeight) < EPSILON) {
-            return normalize(uCylRotM[7] * vec3(0.0, 1.0, 0.0));
-        } else if (abs(localPoint.y + halfHeight) < EPSILON) {
-            return normalize(uCylRotM[7] * vec3(0.0, -1.0, 0.0));
-        } else {
-            vec3 sideNormal = vec3(localPoint.x, 0.0, localPoint.z);
-            return normalize(uCylRotM[7] * sideNormal);
-        }
-    } else if (index == 8) {
-        localPoint = uCylIRotM[8] * (point - uCylPos[8]);
-        halfHeight = uCylHeight[8] / 2.0;
-        if (abs(localPoint.y - halfHeight) < EPSILON) {
-            return normalize(uCylRotM[8] * vec3(0.0, 1.0, 0.0));
-        } else if (abs(localPoint.y + halfHeight) < EPSILON) {
-            return normalize(uCylRotM[8] * vec3(0.0, -1.0, 0.0));
-        } else {
-            vec3 sideNormal = vec3(localPoint.x, 0.0, localPoint.z);
-            return normalize(uCylRotM[8] * sideNormal);
-        }
-    } else if (index == 9) {
-        localPoint = uCylIRotM[9] * (point - uCylPos[9]);
-        halfHeight = uCylHeight[9] / 2.0;
-        if (abs(localPoint.y - halfHeight) < EPSILON) {
-            return normalize(uCylRotM[9] * vec3(0.0, 1.0, 0.0));
-        } else if (abs(localPoint.y + halfHeight) < EPSILON) {
-            return normalize(uCylRotM[9] * vec3(0.0, -1.0, 0.0));
-        } else {
-            vec3 sideNormal = vec3(localPoint.x, 0.0, localPoint.z);
-            return normalize(uCylRotM[9] * sideNormal);
-        }
     }
     return vec3(0.0);
 }
@@ -583,7 +508,6 @@ vec3 getPyramidNormal(vec3 point, int index) {
         halfWidth = uPyramidWidth[0] / 2.0;
         halfHeight = uPyramidHeight[0] / 2.0;
         apex = vec3(0.0, -halfHeight, 0.0);
-        
         if (abs(localPoint.y - halfHeight) < EPSILON) {
             return normalize(uPyramidRotM[0] * vec3(0.0, 1.0, 0.0));
         }
@@ -592,9 +516,40 @@ vec3 getPyramidNormal(vec3 point, int index) {
         halfWidth = uPyramidWidth[1] / 2.0;
         halfHeight = uPyramidHeight[1] / 2.0;
         apex = vec3(0.0, -halfHeight, 0.0);
-        
         if (abs(localPoint.y - halfHeight) < EPSILON) {
             return normalize(uPyramidRotM[1] * vec3(0.0, 1.0, 0.0));
+        }
+    } else if (index == 2) {
+        localPoint = uPyramidIRotM[2] * (point - uPyramidPos[2]);
+        halfWidth = uPyramidWidth[2] / 2.0;
+        halfHeight = uPyramidHeight[2] / 2.0;
+        apex = vec3(0.0, -halfHeight, 0.0);
+        if (abs(localPoint.y - halfHeight) < EPSILON) {
+            return normalize(uPyramidRotM[2] * vec3(0.0, 1.0, 0.0));
+        }
+    } else if (index == 3) {
+        localPoint = uPyramidIRotM[3] * (point - uPyramidPos[3]);
+        halfWidth = uPyramidWidth[3] / 2.0;
+        halfHeight = uPyramidHeight[3] / 2.0;
+        apex = vec3(0.0, -halfHeight, 0.0);
+        if (abs(localPoint.y - halfHeight) < EPSILON) {
+            return normalize(uPyramidRotM[3] * vec3(0.0, 1.0, 0.0));
+        }
+    } else if (index == 4) {
+        localPoint = uPyramidIRotM[4] * (point - uPyramidPos[4]);
+        halfWidth = uPyramidWidth[4] / 2.0;
+        halfHeight = uPyramidHeight[4] / 2.0;
+        apex = vec3(0.0, -halfHeight, 0.0);
+        if (abs(localPoint.y - halfHeight) < EPSILON) {
+            return normalize(uPyramidRotM[4] * vec3(0.0, 1.0, 0.0));
+        }
+    } else if (index == 5) {
+        localPoint = uPyramidIRotM[5] * (point - uPyramidPos[5]);
+        halfWidth = uPyramidWidth[5] / 2.0;
+        halfHeight = uPyramidHeight[5] / 2.0;
+        apex = vec3(0.0, -halfHeight, 0.0);
+        if (abs(localPoint.y - halfHeight) < EPSILON) {
+            return normalize(uPyramidRotM[5] * vec3(0.0, 1.0, 0.0));
         }
     }
     
@@ -680,10 +635,6 @@ vec3 getPyramidNormal(vec3 point, int index) {
     if (index == 3) return normalize(uPyramidRotM[3] * normal);
     if (index == 4) return normalize(uPyramidRotM[4] * normal);
     if (index == 5) return normalize(uPyramidRotM[5] * normal);
-    if (index == 6) return normalize(uPyramidRotM[6] * normal);
-    if (index == 7) return normalize(uPyramidRotM[7] * normal);
-    if (index == 8) return normalize(uPyramidRotM[8] * normal);
-    if (index == 9) return normalize(uPyramidRotM[9] * normal);
     
     return vec3(0.0);
 }
@@ -722,11 +673,6 @@ vec3 getObjectColor(int index, bool isSphere, bool isCylinder, bool isPyramid) {
         if (index == 2) return uCylColor[2] / 255.0;
         if (index == 3) return uCylColor[3] / 255.0;
         if (index == 4) return uCylColor[4] / 255.0;
-        if (index == 5) return uCylColor[5] / 255.0;
-        if (index == 6) return uCylColor[6] / 255.0;
-        if (index == 7) return uCylColor[7] / 255.0;
-        if (index == 8) return uCylColor[8] / 255.0;
-        if (index == 9) return uCylColor[9] / 255.0;
     } else if (isPyramid) {
         if (index == 0) return uPyramidColor[0] / 255.0;
         if (index == 1) return uPyramidColor[1] / 255.0;
@@ -734,21 +680,12 @@ vec3 getObjectColor(int index, bool isSphere, bool isCylinder, bool isPyramid) {
         if (index == 3) return uPyramidColor[3] / 255.0;
         if (index == 4) return uPyramidColor[4] / 255.0;
         if (index == 5) return uPyramidColor[5] / 255.0;
-        if (index == 6) return uPyramidColor[6] / 255.0;
-        if (index == 7) return uPyramidColor[7] / 255.0;
-        if (index == 8) return uPyramidColor[8] / 255.0;
-        if (index == 9) return uPyramidColor[9] / 255.0;
     } else {
         if (index == 0) return uPrismColor[0] / 255.0;
         if (index == 1) return uPrismColor[1] / 255.0;
         if (index == 2) return uPrismColor[2] / 255.0;
         if (index == 3) return uPrismColor[3] / 255.0;
         if (index == 4) return uPrismColor[4] / 255.0;
-        if (index == 5) return uPrismColor[5] / 255.0;
-        if (index == 6) return uPrismColor[6] / 255.0;
-        if (index == 7) return uPrismColor[7] / 255.0;
-        if (index == 8) return uPrismColor[8] / 255.0;
-        if (index == 9) return uPrismColor[9] / 255.0;
     }
     return vec3(1.0, 0.0, 1.0);
 }
@@ -813,21 +750,6 @@ ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder, bool isPyr
         } else if (index == 4) {
             props.ambi = uCylAmbi[4]; props.diff = uCylDiff[4];
             props.spec = uCylSpec[4]; props.shin = uCylShin[4]; props.refl = uCylRefl[4];
-        } else if (index == 5) {
-            props.ambi = uCylAmbi[5]; props.diff = uCylDiff[5];
-            props.spec = uCylSpec[5]; props.shin = uCylShin[5]; props.refl = uCylRefl[5];
-        } else if (index == 6) {
-            props.ambi = uCylAmbi[6]; props.diff = uCylDiff[6];
-            props.spec = uCylSpec[6]; props.shin = uCylShin[6]; props.refl = uCylRefl[6];
-        } else if (index == 7) {
-            props.ambi = uCylAmbi[7]; props.diff = uCylDiff[7];
-            props.spec = uCylSpec[7]; props.shin = uCylShin[7]; props.refl = uCylRefl[7];
-        } else if (index == 8) {
-            props.ambi = uCylAmbi[8]; props.diff = uCylDiff[8];
-            props.spec = uCylSpec[8]; props.shin = uCylShin[8]; props.refl = uCylRefl[8];
-        } else if (index == 9) {
-            props.ambi = uCylAmbi[9]; props.diff = uCylDiff[9];
-            props.spec = uCylSpec[9]; props.shin = uCylShin[9]; props.refl = uCylRefl[9];
         }
     } else if (isPyramid) {
         if (index == 0) {
@@ -848,18 +770,6 @@ ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder, bool isPyr
         } else if (index == 5) {
             props.ambi = uPyramidAmbi[5]; props.diff = uPyramidDiff[5];
             props.spec = uPyramidSpec[5]; props.shin = uPyramidShin[5]; props.refl = uPyramidRefl[5];
-        } else if (index == 6) {
-            props.ambi = uPyramidAmbi[6]; props.diff = uPyramidDiff[6];
-            props.spec = uPyramidSpec[6]; props.shin = uPyramidShin[6]; props.refl = uPyramidRefl[6];
-        } else if (index == 7) {
-            props.ambi = uPyramidAmbi[7]; props.diff = uPyramidDiff[7];
-            props.spec = uPyramidSpec[7]; props.shin = uPyramidShin[7]; props.refl = uPyramidRefl[7];
-        } else if (index == 8) {
-            props.ambi = uPyramidAmbi[8]; props.diff = uPyramidDiff[8];
-            props.spec = uPyramidSpec[8]; props.shin = uPyramidShin[8]; props.refl = uPyramidRefl[8];
-        } else if (index == 9) {
-            props.ambi = uPyramidAmbi[9]; props.diff = uPyramidDiff[9];
-            props.spec = uPyramidSpec[9]; props.shin = uPyramidShin[9]; props.refl = uPyramidRefl[9];
         }
     } else {
         if (index == 0) {
@@ -877,21 +787,6 @@ ObjectProps getObjectProps(int index, bool isSphere, bool isCylinder, bool isPyr
         } else if (index == 4) {
             props.ambi = uPrismAmbi[4]; props.diff = uPrismDiff[4];
             props.spec = uPrismSpec[4]; props.shin = uPrismShin[4]; props.refl = uPrismRefl[4];
-        } else if (index == 5) {
-            props.ambi = uPrismAmbi[5]; props.diff = uPrismDiff[5];
-            props.spec = uPrismSpec[5]; props.shin = uPrismShin[5]; props.refl = uPrismRefl[5];
-        } else if (index == 6) {
-            props.ambi = uPrismAmbi[6]; props.diff = uPrismDiff[6];
-            props.spec = uPrismSpec[6]; props.shin = uPrismShin[6]; props.refl = uPrismRefl[6];
-        } else if (index == 7) {
-            props.ambi = uPrismAmbi[7]; props.diff = uPrismDiff[7];
-            props.spec = uPrismSpec[7]; props.shin = uPrismShin[7]; props.refl = uPrismRefl[7];
-        } else if (index == 8) {
-            props.ambi = uPrismAmbi[8]; props.diff = uPrismDiff[8];
-            props.spec = uPrismSpec[8]; props.shin = uPrismShin[8]; props.refl = uPrismRefl[8];
-        } else if (index == 9) {
-            props.ambi = uPrismAmbi[9]; props.diff = uPrismDiff[9];
-            props.spec = uPrismSpec[9]; props.shin = uPrismShin[9]; props.refl = uPrismRefl[9];
         }
     }
 
